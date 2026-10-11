@@ -59,3 +59,13 @@ build, the installer is the shareable artifact.
 4. Cut a release: bump `version`, commit, `git tag v1.0.0`, `git push --tags`.
    CI typechecks, tests, builds, and publishes both exes to the Release —
    and packaged apps auto-update from those Releases.
+
+## Xbox 360 / XInput support (2.2.0)
+
+Open **Xbox 360 / XInput** to select standard Windows gamepad output and test sticks, triggers, buttons and axis ranges. Deadzone, saturation, response exponent and inversion can be previewed and saved locally.
+
+Experimental Windows forwarding sends adjusted sticks and passthrough triggers/buttons to a virtual Xbox 360 controller for games that accept virtual XInput. It requires Python, vgamepad and signed ViGEmBus, with source-device routing configured separately. Actual Windows/MATRIX hardware behavior remains unverified; this release does not guarantee compatibility with every game.
+
+See [Windows setup and feature coverage](docs/xim-matrix.md). Continue using MATRIX Manager and Wootility to edit hardware settings.
+
+Run the software checks with `npm run typecheck`, `npm test`, `python tests/test_xinputbridge.py`, and `npm run build`.

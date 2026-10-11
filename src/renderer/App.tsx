@@ -1,3 +1,4 @@
+import XinputPanel from './XinputPanel'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { api, b64ToBytes, bytesToB64, type Candidate, type DeviceInfo, type DeviceStats, type LiveSample, type PingResult } from './api'
 import { parseProfile, serializeProfile, fun, stick, LINEAR_CURVE, looksLikeCEProfile, type Packet, type Profile } from '@shared/profile'
@@ -1929,7 +1930,7 @@ export default function App(): JSX.Element {
   const [busy, setBusy] = useState(false)
   const [loadId, setLoadId] = useState(0)
   const [savedAt, setSavedAt] = useState<{ slot: number; at: number } | null>(null)
-  const [tab, setTab] = useState<'sticks' | 'device' | 'profiles' | 'lab' | 'calibrate' | 'marius' | 'language'>('sticks')
+  const [tab, setTab] = useState<'sticks' | 'device' | 'profiles' | 'lab' | 'calibrate' | 'marius' | 'xinput' | 'language'>('sticks')
   const [measuring, setMeasuring] = useState<{ left: number; suggestion: { dev: number; pct10: number } | null } | null>(null)
   const wanderRef = useRef(0)
   const modelLenRef = useRef(PROFILE_LENGTH)
@@ -2342,6 +2343,9 @@ export default function App(): JSX.Element {
           </div>
           <div className="nav-group">
             <h4>{t('nav.preview')}</h4>
+            <button type="button" className={`nav-item${tab === 'xinput' ? ' active' : ''}`} onClick={() => setTab('xinput')}>
+              Xbox 360 / XInput
+            </button>
             <button type="button" className={`nav-item${tab === 'marius' ? ' active' : ''}`} onClick={() => setTab('marius')}>
               Marius
             </button>
@@ -2467,7 +2471,7 @@ export default function App(): JSX.Element {
           </div>
         </header>
         <div className="content">
-          {showSafety && (
+          {showSafety && tab !== 'xinput' && (
             <div className="card" style={{ marginBottom: 16, borderColor: 'var(--warn)' }}>
               <h3>{t('safety.title')}</h3>
               <div className="stack" style={{ gap: 6, fontSize: 13 }}>
@@ -2497,7 +2501,7 @@ export default function App(): JSX.Element {
           {err && <div className="note bad">{err}</div>}
           {msg && <div className="note">{msg}</div>}
           {dirty && <div className="note warn">{t('msg.dirty')}</div>}
-          {!connected && (
+          {!connected && tab !== 'xinput' && (
             <div className="msg"><h3>{t('msg.connect')}</h3><p>{t('msg.models')} {t('msg.connectBody')}</p></div>
           )}
           {connected && !profile && model?.id !== 'Apex5' && (
@@ -2951,6 +2955,7 @@ export default function App(): JSX.Element {
               <div className="msg"><h3>{t('cal.connectTitle')}</h3><p>{t('cal.connectBody')}</p></div>
             )
           )}
+          {tab === 'xinput' && <XinputPanel />}
           {tab === 'marius' && (
             <MariusPanel />
           )}

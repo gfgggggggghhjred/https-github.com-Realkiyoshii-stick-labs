@@ -1,3 +1,4 @@
+import { xinputForwarding } from './xinputForwarding'
 /**
  * G7 Stick Lab — stick-only Electron main. No remap/macros/lighting code.
  * IPC: discover/connect, profile 1-4 read/write (verified), switch, calibration.
@@ -185,6 +186,12 @@ handle('fly:close', () => {
   flyBridge.close()
   return true
 })
+handle('xinput:status', () => xinputForwarding.status())
+handle('xinput:sources', () => xinputForwarding.sources())
+handle('xinput:start', (source: number, settings: import('../shared/xinput').PreviewSettings) => xinputForwarding.start(source, settings))
+handle('xinput:settings', (settings: import('../shared/xinput').PreviewSettings) => xinputForwarding.update(settings))
+handle('xinput:stop', () => xinputForwarding.stop())
+
 handle('system:openExternal', (url: string) => {
   if (typeof url !== 'string' || !/^https:\/\//.test(url)) throw new Error('blocked URL')
   void shell.openExternal(url)
@@ -291,4 +298,4 @@ app.on('window-all-closed', () => {
   controller.disconnect()
   if (process.platform !== 'darwin') app.quit()
 })
-app.on('before-quit', () => controller.disconnect())
+app.on('before-quit', () => { controller.disconnect(); xinputForwarding.close() })

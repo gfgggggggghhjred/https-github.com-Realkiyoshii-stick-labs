@@ -42,6 +42,11 @@ export interface LiveSample {
 }
 
 interface LabApi {
+  xinputStatus(): Promise<import('@shared/xinputForwarding').ForwardingStatus>
+  xinputSources(): Promise<import('@shared/xinputForwarding').XinputSource[]>
+  xinputStart(source: number, settings: import('@shared/xinput').PreviewSettings): Promise<import('@shared/xinputForwarding').ForwardingStatus>
+  xinputSettings(settings: import('@shared/xinput').PreviewSettings): Promise<void>
+  xinputStop(): Promise<import('@shared/xinputForwarding').ForwardingStatus>
   discover(): Promise<Candidate[]>
   connect(path: string): Promise<DeviceInfo>
   disconnect(): Promise<boolean>

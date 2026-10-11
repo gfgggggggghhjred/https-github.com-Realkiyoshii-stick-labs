@@ -12,6 +12,11 @@ async function call<T>(channel: string, ...args: unknown[]): Promise<T> {
 }
 
 const api = {
+  xinputStatus: () => call<import('../shared/xinputForwarding').ForwardingStatus>('xinput:status'),
+  xinputSources: () => call<import('../shared/xinputForwarding').XinputSource[]>('xinput:sources'),
+  xinputStart: (source: number, settings: import('../shared/xinput').PreviewSettings) => call<import('../shared/xinputForwarding').ForwardingStatus>('xinput:start', source, settings),
+  xinputSettings: (settings: import('../shared/xinput').PreviewSettings) => call<void>('xinput:settings', settings),
+  xinputStop: () => call<import('../shared/xinputForwarding').ForwardingStatus>('xinput:stop'),
   discover: () =>
     call<Array<{ path: string; productId: number; preferred: boolean; product: string | undefined; manufacturer: string | undefined; live: boolean | null }>>('device:discover'),
   connect: (path: string) =>

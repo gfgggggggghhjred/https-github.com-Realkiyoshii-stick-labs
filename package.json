@@ -1,7 +1,7 @@
 {
   "name": "g7-stick-lab",
-  "version": "2.1.0",
-  "description": "GameSir G7 Pro 8K stick-only tuner — bit depth, curves, deadzone, polling",
+  "version": "2.2.0",
+  "description": "GameSir G7 Pro 8K stick-only tuner \u2014 bit depth, curves, deadzone, polling",
   "main": "out/main/index.js",
   "author": "Kai",
   "license": "MIT",
@@ -46,8 +46,11 @@
       "out/**/*",
       "package.json",
       "scripts/flybridge.py",
+      "scripts/xinputbridge.py",
+      "scripts/requirements-xinput-windows.txt",
       "node_modules/node-hid/**/*",
-      "node_modules/pkg-prebuilds/**/*"
+      "node_modules/pkg-prebuilds/**/*",
+      "docs/xim-matrix.md"
     ],
     "nsis": {
       "oneClick": false,
@@ -63,8 +66,12 @@
       {
         "provider": "github",
         "owner": "Realkiyoshii",
-        "repo": "stick-labs"
+        "repo": "stick-labs",
+        "releaseType": "release"
       }
-    ]
+    ],
+    "releaseInfo": {
+      "releaseNotesFile": "build/release-notes.md"
+    }
   }
 }

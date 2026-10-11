@@ -20,13 +20,16 @@ const entry =
   tests.length > 0
     ? tests
     : [
-        'tests/roundtrip.ts',
-        'tests/commands.ts',
-        'tests/sticks.ts',
-        'tests/writeguard.ts',
-        'tests/autoswitch.ts',
-        'tests/backup.ts',
-        'tests/foreground.ts'
+        'tests/rawbytes.ts',
+        'tests/models.ts',
+        'tests/t3ce.ts',
+        'tests/c2.ts',
+        'tests/curveidentity.ts',
+        'tests/splinecurve.ts',
+        'tests/marius.ts',
+        'tests/flydigi.ts',
+        'tests/steamcfg.ts',
+        'tests/xinput.ts'
       ]
 
 // Must live inside the project so node can resolve node_modules (ESM does not

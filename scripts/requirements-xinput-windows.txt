@@ -1,1 +1,1 @@
-vgamepad==0.1.0
+vgamepad @ git+https://github.com/yannbouteiller/vgamepad.git@c1d728a6813760a5be21ac9379f4b23347fe8345

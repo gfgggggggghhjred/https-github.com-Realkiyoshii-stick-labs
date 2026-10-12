@@ -65,8 +65,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "Realkiyoshii",
-        "repo": "stick-labs",
+        "owner": "gfgggggggghhjred",
+        "repo": "https-github.com-Realkiyoshii-stick-labs",
         "releaseType": "release"
       }
     ],

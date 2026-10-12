@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createInterface } from 'node:readline'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { app } from 'electron'
 import { validPreview, type PreviewSettings } from '../shared/xinput'
@@ -26,14 +27,16 @@ export class XinputForwarding {
     if (this.starting) return this.starting
     if (this.proc) return
     this.starting = new Promise<void>((resolve, reject) => {
+      const bundled = join(process.resourcesPath, 'windows', 'sticklabs-xinput', 'sticklabs-xinput.exe')
+      if (app.isPackaged && !existsSync(bundled)) { reject(new Error('Bundled input helper is missing. Reinstall Stick Labs.')); return }
       const python = process.env.STICKLABS_PYTHON || 'python'
-      const proc = spawn(python, ['-u', join(app.getAppPath(), 'scripts', 'xinputbridge.py')], { windowsHide: true, stdio: 'pipe' })
+      const proc = spawn(app.isPackaged ? bundled : python, app.isPackaged ? [] : ['-u', join(app.getAppPath(), 'scripts', 'xinputbridge.py')], { windowsHide: true, stdio: 'pipe' })
       this.proc = proc
       let ready = false
       const timer = setTimeout(() => { reject(new Error('XInput helper startup timed out')); proc.kill() }, 10000)
       const fail = (error: Error): void => { clearTimeout(timer); this.reset(error, proc); if (!ready) reject(error) }
       proc.on('error', fail)
-      proc.on('exit', () => fail(new Error(this.error || 'XInput helper exited. Install Python, vgamepad and ViGEmBus on Windows.')))
+      proc.on('exit', () => fail(new Error(this.error || 'XInput helper exited. Use Windows driver setup, then restart Stick Labs.')))
       proc.stdin.on('error', fail)
       let stderr = ''
       proc.stderr.on('data', (chunk: Buffer) => { stderr = (stderr + chunk.toString()).slice(-2000); this.error = stderr })
@@ -72,9 +75,25 @@ export class XinputForwarding {
     })
   }
   async status(): Promise<ForwardingStatus> {
-    if (process.platform !== 'win32') return { supported: false, running: false, sourceSlot: null, outputSlot: null, error: 'Forwarding requires Windows 10/11, Python, vgamepad and the signed ViGEmBus driver.' }
+    if (process.platform !== 'win32') return { supported: false, running: false, sourceSlot: null, outputSlot: null, error: 'Forwarding requires Windows 10/11 and the signed ViGEmBus driver.' }
     if (!this.proc) return { supported: true, running: false, sourceSlot: null, outputSlot: null, error: this.error }
     return { supported: true, ...await this.request('status') }
+  }
+  async installDriver(): Promise<void> {
+    if (process.platform !== 'win32') throw new Error('Driver setup requires Windows.')
+    if (this.proc || this.starting) throw new Error('Close and reopen Stick Labs before installing the driver.')
+    const installer = join(process.resourcesPath, 'windows', 'ViGEmBus_1.22.0_x64_x86_arm64.exe')
+    if (!existsSync(installer)) throw new Error('Driver installer is available in the packaged Windows release.')
+    const escaped = installer.replace(/'/g, "''")
+    await new Promise<void>((resolve, reject) => {
+      const command = `$p='${escaped}'; $s=Get-AuthenticodeSignature $p; if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'Nefarius') { throw 'Driver signature verification failed' }; $r=Start-Process -FilePath $p -Verb RunAs -Wait -PassThru; if ($r.ExitCode -notin @(0,3010,1641)) { throw ('Driver setup failed: '+$r.ExitCode) }`
+      const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true })
+      let error = ''
+      child.stderr.on('data', chunk => { error = (error + chunk.toString()).slice(-2000) })
+      child.on('error', reject)
+      child.on('exit', code => code === 0 ? resolve() : reject(new Error(error || 'Driver setup was cancelled or failed.')))
+    })
+    this.error = null
   }
   async sources(): Promise<XinputSource[]> { return this.request('sources') }
   async start(source: number, settings: PreviewSettings): Promise<ForwardingStatus> {

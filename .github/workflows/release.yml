@@ -4,13 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Existing release tag to build (for example v2.2.0)'
+        description: 'Existing release tag to build (for example v2.3.0)'
         required: true
-        default: 'v2.2.0'
+        default: 'v2.3.0'
         type: string
   push:
+    branches:
+      - main
+    paths:
+      - package.json
     tags:
       - 'v*'
+
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
 
 permissions:
   contents: write

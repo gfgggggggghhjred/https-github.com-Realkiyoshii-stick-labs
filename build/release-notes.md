@@ -1,16 +1,13 @@
-# Stick Labs 2.2.0
+# Stick Labs 2.3.0
 
-Adds an Xbox 360 / XInput panel for testing standard Windows gamepad output, including Wooting 60HE -> XIM MATRIX -> Windows setups.
+Windows releases now include the standalone virtual-controller helper and its Python/vgamepad libraries, with in-app installation or repair of the original signed ViGEmBus driver.
 
-- Live sticks, triggers, button indicators and axis range diagnostics.
-- Diagnostic JSON exports and validated local preview presets.
-- Deadzone, outer saturation, response exponent and axis inversion adjustments.
-- Experimental Windows forwarding to a virtual Xbox 360 controller: buttons and triggers pass through; stick transforms apply to both sticks.
-- Explicit native XInput source selection, feedback-loop slot checks, neutral shutdown, source-disconnect stop and a control-connection watchdog.
-- Corrected the default test runner to execute existing suites; Windows release CI also runs the Python backend tests.
+- Stable resting-center and full-travel software calibration for the left stick.
+- Linear, precision, and quick-response curves with a response graph.
+- Independent left/right jitter sliders (0–5%) and a shared variation rate.
+- An Always on option for each stick to continue jitter at rest. Otherwise release returns to neutral; zero strength disables jitter.
+- Calibration and jitter settings save locally and travel with exported presets. Apply edited settings while forwarding to update game output.
 
-## Windows forwarding requirements and limitations
+Driver installation requires administrator approval and may require a restart. ViGEmBus is retired upstream. Game-specific controller selection or HidHide routing may still be necessary; allow the bundled sticklabs-xinput.exe helper when using HidHide. Always-on jitter can move your character or camera at rest.
 
-Forwarding requires separately installed Python, vgamepad 0.1.3 and a production-signed ViGEmBus driver. ViGEmBus is retired upstream. HidHide or game-specific controller selection may be needed to prevent duplicate input. See docs/xim-matrix.md in the repository for installation and routing steps.
-
-The backend has automated simulation coverage but has not been validated on physical Windows/MATRIX hardware. Compatibility with every Windows game is not guaranteed. Rumble and Guide-button extensions are not forwarded. Host-side transforms do not change MATRIX/Wooting firmware, hardware polling rate, sensor bit depth, calibration or onboard profiles. Manager and Wootility remain the tools for hardware settings.
+Typechecks, the existing test suites, 15 Python simulation tests, and the application build pass. Real Windows/MATRIX hardware behavior remains unverified. These are host-side adjustments, not firmware calibration; rumble and Guide-button extensions are not forwarded.

@@ -42,6 +42,7 @@ export interface LiveSample {
 }
 
 interface LabApi {
+  xinputInstallDriver(): Promise<void>
   xinputStatus(): Promise<import('@shared/xinputForwarding').ForwardingStatus>
   xinputSources(): Promise<import('@shared/xinputForwarding').XinputSource[]>
   xinputStart(source: number, settings: import('@shared/xinput').PreviewSettings): Promise<import('@shared/xinputForwarding').ForwardingStatus>

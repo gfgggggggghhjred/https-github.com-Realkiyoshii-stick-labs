@@ -5,6 +5,15 @@ export interface PreviewSettings {
   exponent: number
   invertX: boolean
   invertY: boolean
+  centerX?: number
+  centerY?: number
+  rangeX?: number
+  rangeY?: number
+  variation?: number
+  variationSpeed?: number
+  rightVariation?: number
+  leftJitterAlways?: boolean
+  rightJitterAlways?: boolean
 }
 export const DEFAULT_PREVIEW: PreviewSettings = { inner: 0, outer: 100, exponent: 1, invertX: false, invertY: false }
 export function validPreview(value: unknown): value is PreviewSettings {
@@ -12,11 +21,18 @@ export function validPreview(value: unknown): value is PreviewSettings {
   const s = value as PreviewSettings
   return Number.isFinite(s.inner) && Number.isFinite(s.outer) && Number.isFinite(s.exponent) &&
     s.inner >= 0 && s.inner <= 50 && s.outer > s.inner && s.outer <= 100 &&
-    s.exponent >= 0.2 && s.exponent <= 5 && typeof s.invertX === 'boolean' && typeof s.invertY === 'boolean'
+    s.exponent >= 0.2 && s.exponent <= 5 && typeof s.invertX === 'boolean' && typeof s.invertY === 'boolean' &&
+    (s.leftJitterAlways === undefined || typeof s.leftJitterAlways === 'boolean') &&
+    (s.rightJitterAlways === undefined || typeof s.rightJitterAlways === 'boolean') &&
+    [['centerX', -.25, .25], ['centerY', -.25, .25], ['rangeX', .25, 1.5], ['rangeY', .25, 1.5], ['variation', 0, 5], ['rightVariation', 0, 5], ['variationSpeed', .2, 10]].every(([key, min, max]) => {
+      const v = s[key as keyof PreviewSettings]; return v === undefined || typeof v === 'number' && Number.isFinite(v) && v >= Number(min) && v <= Number(max)
+    })
 }
 export function previewStick(x: number, y: number, s: PreviewSettings): [number, number] {
   if (!validPreview(s) || !Number.isFinite(x) || !Number.isFinite(y)) throw new Error('Invalid preview settings or axes')
   x = Math.max(-1, Math.min(1, x)); y = Math.max(-1, Math.min(1, y))
+  x = Math.max(-1, Math.min(1, (x - (s.centerX ?? 0)) / (s.rangeX ?? 1)))
+  y = Math.max(-1, Math.min(1, (y - (s.centerY ?? 0)) / (s.rangeY ?? 1)))
   const length = Math.hypot(x, y)
   if (length <= s.inner / 100 || length === 0) return [0, 0]
   const magnitude = Math.min(1, (length - s.inner / 100) / ((s.outer - s.inner) / 100)) ** s.exponent

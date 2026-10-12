@@ -4,3 +4,8 @@ dist/
 .probe-tmp/
 .test-tmp/
 .git/
+
+build/windows/
+build/pyinstaller/
+*.spec
+__pycache__/

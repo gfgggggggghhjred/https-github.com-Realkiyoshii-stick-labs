@@ -186,6 +186,7 @@ handle('fly:close', () => {
   flyBridge.close()
   return true
 })
+handle('xinput:install-driver', () => xinputForwarding.installDriver())
 handle('xinput:status', () => xinputForwarding.status())
 handle('xinput:sources', () => xinputForwarding.sources())
 handle('xinput:start', (source: number, settings: import('../shared/xinput').PreviewSettings) => xinputForwarding.start(source, settings))

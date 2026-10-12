@@ -10,6 +10,7 @@ export default function XinputForwardingControls({ settings }: { settings: Previ
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState<string | null>(null)
+  const [setupMessage, setSetupMessage] = useState<string | null>(null)
   const [routingConfirmed, setRoutingConfirmed] = useState(false)
   useEffect(() => {
     let dead = false
@@ -25,7 +26,9 @@ export default function XinputForwardingControls({ settings }: { settings: Previ
   return <div className="card">
     <h3>Forward adjusted input to Windows games</h3>
     <p>Creates a virtual Xbox 360 controller using the settings above. Both sticks are adjusted; buttons and triggers pass through. Keep Stick Labs running. This does not write to MATRIX or Wooting.</p>
-    <p>Requires Windows 10/11, Python, vgamepad and a signed ViGEmBus driver. This Windows backend is experimental and has not been tested with your hardware. ViGEmBus is a retired upstream project.</p>
+    <p>Windows releases include the input helper and its libraries. Install the signed ViGEmBus driver once using the button below; Windows will request administrator approval. This Windows backend is experimental and has not been tested with your hardware. ViGEmBus is a retired upstream project.</p>
+    <button className="btn sm" disabled={!status?.supported || busy || !!status?.running} onClick={() => void perform(async () => { await api().xinputInstallDriver(); setSetupMessage('Driver setup finished. Restart Windows if requested, then reopen Stick Labs.') })}>{busy ? 'Working…' : 'Install / repair Windows driver'}</button>
+    {setupMessage && <p role="status">{setupMessage}</p>}
     {!status?.supported && <div className="note" role="status">{status?.error ?? 'Checking Windows support…'}</div>}
     <div className="row wrap">
       <button className="btn sm" disabled={!status?.supported || busy || status.running} onClick={() => void perform(async () => { setSources(await api().xinputSources()) })}>Refresh Windows XInput slots</button>
@@ -35,7 +38,7 @@ export default function XinputForwardingControls({ settings }: { settings: Previ
       </select></label>
     </div>
     <p className="hint">Windows XInput slots are separate from the browser controller list. Move a mapped analog key and refresh to identify the correct source. Connect the source first; do not select another app’s virtual output.</p>
-    <p>Games must read the virtual controller rather than the original output. For games that cannot choose a controller, use HidHide to hide the MATRIX gamepad interface from games and allow the Python helper to read it. Do not hide keyboard or mouse interfaces. This app does not change device visibility automatically.</p>
+    <p>Games must read the virtual controller rather than the original output. For games that cannot choose a controller, use HidHide to hide the MATRIX gamepad interface from games and allow the bundled sticklabs-xinput.exe helper to read it. Do not hide keyboard or mouse interfaces. This app does not change device visibility automatically.</p>
     <label><input type="checkbox" checked={routingConfirmed} disabled={busy || !!status?.running} onChange={e => setRoutingConfirmed(e.target.checked)} /> I have selected the source and configured my game to use the virtual controller.</label>
     <div className="row wrap" style={{ marginTop: 12 }}>
       <button className="btn sm primary" disabled={!status?.supported || busy || source === null || !routingConfirmed || !!status?.running} onClick={() => void perform(async () => {

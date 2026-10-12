@@ -4,6 +4,7 @@ import json
 import math
 import os
 import queue
+import random
 import sys
 import threading
 import time
@@ -19,6 +20,13 @@ def validate_settings(s):
         raise ValueError('Adjustment settings out of range')
     if type(s.get('invertX')) is not bool or type(s.get('invertY')) is not bool:
         raise ValueError('Invalid inversion setting')
+    for key, low, high in [('centerX', -.25, .25), ('centerY', -.25, .25), ('rangeX', .25, 1.5), ('rangeY', .25, 1.5), ('variation', 0, 5), ('rightVariation', 0, 5), ('variationSpeed', .2, 10)]:
+        value = s.get(key, 1 if key in ('rangeX', 'rangeY', 'variationSpeed') else 0)
+        if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
+            raise ValueError('Invalid setting: ' + key)
+    for key in ('leftJitterAlways', 'rightJitterAlways'):
+        if key in s and type(s[key]) is not bool:
+            raise ValueError('Invalid jitter mode: ' + key)
     return dict(s)
 
 
@@ -26,6 +34,8 @@ def transform_stick(x, y, s):
     # XInput Y is up-positive; the UI's standard Gamepad Y is down-positive.
     x = x / (32768 if x < 0 else 32767)
     y = -y / (32768 if y < 0 else 32767)
+    x = max(-1, min(1, (x - s.get('centerX', 0)) / s.get('rangeX', 1)))
+    y = max(-1, min(1, (y - s.get('centerY', 0)) / s.get('rangeY', 1)))
     length = math.hypot(x, y)
     if length <= s['inner'] / 100 or length == 0:
         return 0, 0
@@ -35,6 +45,42 @@ def transform_stick(x, y, s):
     def axis(v):
         return max(-32768, min(32767, round(v * (32768 if v < 0 else 32767))))
     return axis(x), axis(y)
+
+
+class AnalogVariation:
+    """Time-based smooth noise, left stick only; exact neutral stays neutral."""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.previous = (0., 0.)
+        self.target = (0., 0.)
+        self.started = None
+
+    def apply(self, x, y, settings, now=None, always=False):
+        amount = settings.get('variation', 0) / 100
+        if not amount or (x == 0 and y == 0 and not always):
+            self.reset()
+            return x, y
+        now = time.monotonic() if now is None else now
+        duration = 1 / settings.get('variationSpeed', 1)
+        if self.started is None or now - self.started >= duration:
+            self.previous = self.target
+            self.target = (random.uniform(-1, 1), random.uniform(-1, 1))
+            self.started = now
+        t = min(1, max(0, (now - self.started) / duration))
+        t = t * t * (3 - 2 * t)
+        noise = [a + (b - a) * t for a, b in zip(self.previous, self.target)]
+        if x == 0 and y == 0:
+            return round(noise[0] * amount * 32767), round(noise[1] * amount * 32767)
+        angle = noise[0] * amount
+        scale = max(0, 1 - amount * (noise[1] + 1) / 2)
+        xx = (x * math.cos(angle) - y * math.sin(angle)) * scale
+        yy = (x * math.sin(angle) + y * math.cos(angle)) * scale
+        length = math.hypot(xx, yy)
+        if length > 32767:
+            xx, yy = xx / length * 32767, yy / length * 32767
+        return max(-32768, min(32767, round(xx))), max(-32768, min(32767, round(yy)))
 
 
 class Gamepad(ctypes.Structure):
@@ -48,6 +94,8 @@ class State(ctypes.Structure):
 
 class Bridge:
     def __init__(self, reader, factory):
+        self.variation = AnalogVariation()
+        self.right_variation = AnalogVariation()
         self.reader = reader
         self.factory = factory
         self.target = None
@@ -86,6 +134,8 @@ class Bridge:
             target.close()
             raise
         self.target, self.source, self.output_slot = target, source, slot
+        self.variation.reset()
+        self.right_variation.reset()
         self.settings = validated
         self.error = None
         self.last_heartbeat = time.monotonic()
@@ -106,7 +156,10 @@ class Bridge:
             if pad is None:
                 raise RuntimeError('Source disconnected; forwarding stopped. Re-select the source before restarting.')
             lx, ly = transform_stick(pad.lx, pad.ly, self.settings)
-            rx, ry = transform_stick(pad.rx, pad.ry, self.settings)
+            lx, ly = self.variation.apply(lx, ly, self.settings, always=self.settings.get('leftJitterAlways', False))
+            right_settings = {k: v for k, v in self.settings.items() if k not in ('centerX', 'centerY', 'rangeX', 'rangeY')}
+            rx, ry = transform_stick(pad.rx, pad.ry, right_settings)
+            rx, ry = self.right_variation.apply(rx, ry, {**self.settings, 'variation': self.settings.get('rightVariation', 0)}, always=self.settings.get('rightJitterAlways', False))
             self.target.write(pad.buttons, pad.lt, pad.rt, lx, ly, rx, ry)
         except Exception as exc:
             self.error = str(exc)

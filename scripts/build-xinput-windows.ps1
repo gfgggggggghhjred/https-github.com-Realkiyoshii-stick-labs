@@ -7,5 +7,6 @@ if ($LASTEXITCODE -ne 0) { throw 'Helper build failed' }
 # Distribute the original signed upstream installer, never a modified driver.
 $driver = Join-Path $PWD 'build/windows/ViGEmBus_1.22.0_x64_x86_arm64.exe'
 Invoke-WebRequest 'https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe' -OutFile $driver
+Import-Module (Join-Path $PSHOME "Modules/Microsoft.PowerShell.Security/Microsoft.PowerShell.Security.psd1") -ErrorAction Stop
 $signature = Get-AuthenticodeSignature $driver
 if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Nefarius') { throw 'Driver publisher signature verification failed' }

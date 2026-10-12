@@ -1,6 +1,13 @@
 name: release
 
 on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to build (for example v2.2.0)'
+        required: true
+        default: 'v2.2.0'
+        type: string
   push:
     tags:
       - 'v*'
@@ -13,6 +20,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22

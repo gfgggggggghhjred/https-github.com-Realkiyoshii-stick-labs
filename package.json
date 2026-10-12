@@ -13,7 +13,7 @@
     "test": "node scripts/test.mjs",
     "dist": "npm run bundle:windows && electron-vite build && electron-builder --win",
     "dist:portable": "npm run bundle:windows && electron-vite build && electron-builder --win portable",
-    "bundle:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-xinput-windows.ps1"
+    "bundle:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-xinput-windows.ps1"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",

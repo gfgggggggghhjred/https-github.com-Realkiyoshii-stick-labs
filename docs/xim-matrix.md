@@ -79,3 +79,11 @@ Keyboard/mouse interfaces and identified ViGEm-backed interfaces are excluded. I
 After applying routing, reconnect MATRIX if needed and refresh **Windows XInput slots**. Browser gamepad input for the hidden physical device may disappear; the allowed helper can still read it. Use the native source selector for forwarding, and the virtual output for browser testing. The installed application is recommended over portable mode for stable HidHide helper paths. Portable extraction/update paths may require Undo and setup again.
 
 ViGEm's user-index query is backed by its cached LED state. Startup now waits for a stable independent slot. For differently identified physical/virtual devices, the bridge can corroborate the one newly enumerated native XInput slot using the optional hardware-ID query used by SDL's Windows backend. Ambiguous candidates and source identity changes stop forwarding. Hardware-ID support is optional: when unavailable, the strict reported-slot check remains. The error includes source, before/after slots and the driver's LED index for diagnosis; loop protection must not be disabled to force forwarding.
+
+### Connect & set up (2.3.3)
+
+1. Install Stick Labs using the Windows setup executable and connect MATRIX.
+2. Open Xbox 360 / XInput and click **Connect & set up**. Complete missing driver installers and Windows administrator prompts. If a restart is requested, restart and click the button again.
+3. Confirm the scanned MATRIX gamepad interface and click **Set up routing**. Only that gamepad is hidden; the bundled helper is allowed to read it. Keyboard and mouse interfaces stay visible.
+4. The helper launches and Windows source slots refresh automatically. Verify the source selection, confirm game routing, and click **Start forwarding**. If routing was configured previously, use **Launch helper & refresh slots**.
+5. **Open advanced HidHide application** opens the installed configuration client when manual troubleshooting is needed; **Undo Stick Labs routing** reverses this app's changes. MATRIX Manager and Wootility remain separate tools for hardware configuration.

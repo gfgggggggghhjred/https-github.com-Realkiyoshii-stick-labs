@@ -149,4 +149,55 @@ class Tests(unittest.TestCase):
         bridge.start(0, DEFAULT); devices[1] = m.Gamepad()
         self.assertEqual([s['slot'] for s in bridge.sources()], [0])
 
+class SlotResolutionTests(unittest.TestCase):
+    class Reader:
+        def __init__(self):
+            self.devices = {0: m.Gamepad(), 1: m.Gamepad()}
+            self.ids = {0: (0x046d, 0xc53b), 1: (0x045e, 0x028e)}
+        def __call__(self, slot): return self.devices.get(slot)
+        def identity(self, slot): return self.ids.get(slot)
+    class Virtual(Target):
+        def identity(self): return 0x045e, 0x028e
+    def test_cached_led_conflict_uses_new_native_slot_with_distinct_verified_identity(self):
+        reader = self.Reader()
+        slot, source_id = m.resolve_output_slot(reader, self.Virtual(0), 0, {0}, attempts=3, pause=lambda _: None)
+        self.assertEqual(slot, 1)
+        self.assertEqual(source_id, (0x046d, 0xc53b))
+    def test_delayed_index_can_stabilize_without_bypassing_guard(self):
+        indices = iter([0, 1, 1])
+        target = self.Virtual()
+        target.user_index = lambda: next(indices)
+        slot, _ = m.resolve_output_slot(lambda i: m.Gamepad() if i == 0 else None, target, 0, {0}, attempts=4, pause=lambda _: None)
+        self.assertEqual(slot, 1)
+    def test_same_identity_and_conflicting_led_index_still_refused(self):
+        reader = self.Reader(); reader.ids[0] = reader.ids[1]
+        with self.assertRaises(ValueError): m.resolve_output_slot(reader, self.Virtual(0), 0, {0}, attempts=3, pause=lambda _: None)
+    def test_ambiguous_multiple_new_slots_refused(self):
+        reader = self.Reader(); reader.devices[2] = m.Gamepad(); reader.ids[2] = (0x045e, 0x028e)
+        with self.assertRaises(ValueError): m.resolve_output_slot(reader, self.Virtual(0), 0, {0}, attempts=3, pause=lambda _: None)
+    def test_source_remap_stops_forwarding(self):
+        reader = self.Reader(); target = self.Virtual(2)
+        reader.devices.pop(1); reader.ids.pop(1)
+        def factory():
+            reader.devices[2] = m.Gamepad(); reader.ids[2] = (0x045e, 0x028e)
+            return target
+        bridge = m.Bridge(reader, factory)
+        bridge.start(0, DEFAULT)
+        reader.ids[0] = (0x045e, 0x028e)
+        bridge.tick()
+        self.assertTrue(target.closed)
+        self.assertIn('identity changed', bridge.error)
+    def test_free_led_slot_with_wrong_hardware_identity_refused(self):
+        reader = self.Reader(); reader.ids[1] = (0x1234, 0x5678)
+        with self.assertRaises(ValueError):
+            m.resolve_output_slot(reader, self.Virtual(1), 0, {0}, attempts=3, pause=lambda _: None)
+    def test_identity_changed_during_creation_refused(self):
+        reader = self.Reader()
+        with self.assertRaises(ValueError):
+            m.resolve_output_slot(reader, self.Virtual(1), 0, {0}, attempts=3, pause=lambda _: None, expected_source_identity=(0x1111, 0x2222))
+    def test_native_layouts_match_xinput(self):
+        self.assertEqual(m.ctypes.sizeof(m.Gamepad), 12)
+        self.assertEqual(m.ctypes.sizeof(m.Capabilities), 20)
+        self.assertEqual(m.ctypes.sizeof(m.CapabilitiesEx), 32)
+
 if __name__ == '__main__': unittest.main()

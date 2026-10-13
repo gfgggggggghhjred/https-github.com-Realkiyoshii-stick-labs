@@ -29,7 +29,8 @@ const entry =
         'tests/marius.ts',
         'tests/flydigi.ts',
         'tests/steamcfg.ts',
-        'tests/xinput.ts'
+        'tests/xinput.ts',
+        'tests/hidHideRouting.ts'
       ]
 
 // Must live inside the project so node can resolve node_modules (ESM does not

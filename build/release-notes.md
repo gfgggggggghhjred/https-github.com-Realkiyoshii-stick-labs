@@ -1,14 +1,11 @@
-# Stick Labs 2.3.1
+# Stick Labs 2.3.2
 
-Windows forwarding setup is now included in the application.
+Adds guided MATRIX routing inside the application:
 
-- Bundled XInput helper executable with its Python runtime, vgamepad and ViGEmClient DLL: no separate Python/pip installation for Xbox forwarding.
-- In-app detection and installation buttons for the signed ViGEmBus driver and optional HidHide.
-- Bundled Microsoft Visual C++ runtime installer for HidHide's configuration client when needed.
-- Publisher-signature verification during packaging and before running an elevated installer.
-- Existing driver installations are reused. Windows retains its normal administrator prompts and reboot requirements.
-- A button opens HidHide's configuration client for source-device routing.
+- Scan for gamepad interfaces, with a recommendation for the reported 046D:C53B MATRIX output.
+- Register the bundled forwarding helper and hide only the selected gamepad interface using HidHide, with normal Windows administrator approval.
+- Verify the applied configuration, retain a recovery record and undo Stick Labs changes without clearing unrelated rules.
+- Keyboard/mouse and identified ViGEm interfaces are excluded; inverted HidHide mode requires advanced setup.
+- Improve virtual-slot discovery: wait for enumeration and corroborate native hardware IDs when available instead of trusting only ViGEm's cached LED index. Loop and source-reassignment protection remain enabled.
 
-Windows x64 packages include dependency installers and license notices. The Flydigi Python bridge is separate and is not bundled by this change. ViGEmBus remains retired upstream. Input forwarding still needs real Windows/MATRIX and game validation; firmware/ADC/polling changes are not provided. Select the correct source and configure hiding or game controller selection to prevent duplicate input. Automatic keyboard/mouse hiding is deliberately not performed.
-
-Preserves the calibration and dual-stick jitter features introduced by the newer 2.3.0 source. The upstream unattended vgamepad dependency pin is retained.
+Windows dependency installers and the forwarding runtime remain bundled. Stop forwarding before routing changes. Reconnect MATRIX if Windows needs it, refresh native XInput slots, and select the physical source after applying routing. Physical hardware validation remains required. Existing calibration/jitter features are preserved.

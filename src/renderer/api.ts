@@ -42,6 +42,9 @@ export interface LiveSample {
 }
 
 interface LabApi {
+  windowsRoutingState(): Promise<import('@shared/hidHideRouting').RoutingState>
+  windowsApplyRouting(id: string): Promise<import('@shared/hidHideRouting').RoutingState>
+  windowsUndoRouting(): Promise<import('@shared/hidHideRouting').RoutingState>
   windowsSetupStatus(): Promise<import('@shared/windowsSetup').WindowsSetupStatus>
   windowsInstallDriver(driver: import('@shared/windowsSetup').WindowsDriver): Promise<{ rebootRequired: boolean }>
   windowsOpenRouting(): Promise<void>

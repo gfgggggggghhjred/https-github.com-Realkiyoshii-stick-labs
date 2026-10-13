@@ -1,4 +1,4 @@
-import { windowsSetupStatus, installWindowsDriver, openHidHideSetup } from './windowsSetup'
+import { windowsSetupStatus, installWindowsDriver, openHidHideSetup, windowsRoutingState, applyWindowsRouting, undoWindowsRouting } from './windowsSetup'
 import { xinputForwarding } from './xinputForwarding'
 /**
  * G7 Stick Lab — stick-only Electron main. No remap/macros/lighting code.
@@ -186,6 +186,17 @@ handle('fly:collect', async (cmd: number, args: number[], count: number) => {
 handle('fly:close', () => {
   flyBridge.close()
   return true
+})
+handle('windows:routingState', () => windowsRoutingState())
+handle('windows:applyRouting', async (id: string) => {
+  if ((await xinputForwarding.status()).running) throw new Error('Stop forwarding before configuring routing.')
+  xinputForwarding.close()
+  return applyWindowsRouting(id)
+})
+handle('windows:undoRouting', async () => {
+  if ((await xinputForwarding.status()).running) throw new Error('Stop forwarding before undoing routing.')
+  xinputForwarding.close()
+  return undoWindowsRouting()
 })
 handle('windows:setupStatus', () => windowsSetupStatus())
 handle('windows:installDriver', async (driver: import('../shared/windowsSetup').WindowsDriver) => {

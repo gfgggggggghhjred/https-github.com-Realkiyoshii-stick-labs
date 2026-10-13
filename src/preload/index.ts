@@ -12,6 +12,9 @@ async function call<T>(channel: string, ...args: unknown[]): Promise<T> {
 }
 
 const api = {
+  windowsRoutingState: () => call<import('../shared/hidHideRouting').RoutingState>('windows:routingState'),
+  windowsApplyRouting: (id: string) => call<import('../shared/hidHideRouting').RoutingState>('windows:applyRouting', id),
+  windowsUndoRouting: () => call<import('../shared/hidHideRouting').RoutingState>('windows:undoRouting'),
   windowsSetupStatus: () => call<import('../shared/windowsSetup').WindowsSetupStatus>('windows:setupStatus'),
   windowsInstallDriver: (driver: import('../shared/windowsSetup').WindowsDriver) => call<{ rebootRequired: boolean }>('windows:installDriver', driver),
   windowsOpenRouting: () => call<void>('windows:openRouting'),

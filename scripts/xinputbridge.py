@@ -92,6 +92,45 @@ class State(ctypes.Structure):
     _fields_ = [('packet', ctypes.c_uint32), ('pad', Gamepad)]
 
 
+def resolve_output_slot(reader, target, source, occupied, attempts=60, pause=time.sleep, expected_source_identity=...):
+    identify = getattr(reader, 'identity', None)
+    source_identity = (identify(source) if identify else None) if expected_source_identity is ... else expected_source_identity
+    target_identity = target.identity() if hasattr(target, 'identity') else None
+    previous = None
+    last_reported = None
+    visible = set(occupied)
+    for _ in range(attempts):
+        if reader(source) is None:
+            raise ValueError('Source disconnected during virtual controller startup; select it again.')
+        if source_identity is not None and identify(source) != source_identity:
+            raise ValueError('Source identity changed during startup; refusing to read a reassigned slot.')
+        try:
+            last_reported = target.user_index()
+        except Exception:
+            last_reported = None  # driver index can be unavailable while Windows enumerates
+        visible = {i for i in range(4) if reader(i) is not None}
+        candidate = None
+        if last_reported in range(4) and last_reported not in occupied:
+            # Injected non-native test readers do not enumerate a virtual device.
+            if not identify or last_reported in visible:
+                candidate = last_reported
+                if identify and source_identity is not None and target_identity is not None and identify(candidate) != target_identity:
+                    candidate = None
+        if candidate is None and identify and source_identity and target_identity and source_identity != target_identity:
+            added = visible - occupied
+            if len(added) == 1:
+                slot = next(iter(added))
+                if identify(slot) == target_identity:
+                    candidate = slot
+        if candidate is not None and candidate == previous:
+            return candidate, source_identity
+        previous = candidate
+        pause(.05)
+    shown = lambda slots: ', '.join(str(i + 1) for i in sorted(slots)) or 'none'
+    reported = str(last_reported + 1) if last_reported in range(4) else 'unavailable'
+    raise ValueError(f'Could not verify a separate virtual controller slot. Source {source + 1}; occupied before: {shown(occupied)}; visible now: {shown(visible)}; driver LED index: {reported}. Stop other virtual controllers, refresh slots and retry. Loop protection remains enabled.')
+
+
 class Bridge:
     def __init__(self, reader, factory):
         self.variation = AnalogVariation()
@@ -101,6 +140,7 @@ class Bridge:
         self.target = None
         self.source = None
         self.output_slot = None
+        self.source_identity = None
         self.settings = None
         self.error = None
         self.last_heartbeat = time.monotonic()
@@ -125,15 +165,16 @@ class Bridge:
             raise ValueError('Selected source is disconnected')
         if len(occupied) == 4:
             raise ValueError('All four XInput slots are occupied; disconnect another controller')
+        identify = getattr(self.reader, 'identity', None)
+        source_identity = identify(source) if identify else None
         target = self.factory()
         try:
-            slot = target.user_index()
-            if slot not in range(4) or slot in occupied:
-                raise ValueError('Virtual controller slot conflicts with a source; refusing feedback loop')
+            slot, source_identity = resolve_output_slot(self.reader, target, source, occupied, expected_source_identity=source_identity)
         except Exception:
             target.close()
             raise
         self.target, self.source, self.output_slot = target, source, slot
+        self.source_identity = source_identity
         self.variation.reset()
         self.right_variation.reset()
         self.settings = validated
@@ -152,6 +193,8 @@ class Bridge:
         try:
             if time.monotonic() - self.last_heartbeat > 5:
                 raise RuntimeError('Control connection timed out; forwarding stopped')
+            if self.source_identity is not None and self.reader.identity(self.source) != self.source_identity:
+                raise RuntimeError('Source slot identity changed; forwarding stopped to prevent a loop.')
             pad = self.reader(self.source)
             if pad is None:
                 raise RuntimeError('Source disconnected; forwarding stopped. Re-select the source before restarting.')
@@ -166,11 +209,40 @@ class Bridge:
             self.stop()
 
 
+class Vibration(ctypes.Structure):
+    _fields_ = [('left', ctypes.c_uint16), ('right', ctypes.c_uint16)]
+
+
+class Capabilities(ctypes.Structure):
+    _fields_ = [('type', ctypes.c_uint8), ('subtype', ctypes.c_uint8), ('flags', ctypes.c_uint16),
+                ('pad', Gamepad), ('vibration', Vibration)]
+
+
+class CapabilitiesEx(ctypes.Structure):
+    _fields_ = [('capabilities', Capabilities), ('vid', ctypes.c_uint16), ('pid', ctypes.c_uint16),
+                ('revision', ctypes.c_uint16), ('unknown', ctypes.c_uint16), ('unknown2', ctypes.c_uint32)]
+
+
 class WindowsReader:
     def __init__(self):
         self.dll = ctypes.WinDLL('xinput1_4.dll')
         self.dll.XInputGetState.argtypes = [ctypes.c_uint32, ctypes.POINTER(State)]
         self.dll.XInputGetState.restype = ctypes.c_uint32
+        # Optional hardware-ID query used by SDL's Windows XInput backend (ordinal 108).
+        try:
+            self.get_capabilities_ex = self.dll[108]
+            self.get_capabilities_ex.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.POINTER(CapabilitiesEx)]
+            self.get_capabilities_ex.restype = ctypes.c_uint32
+        except (AttributeError, OSError):
+            self.get_capabilities_ex = None
+
+    def identity(self, slot):
+        if self.get_capabilities_ex is None:
+            return None
+        capabilities = CapabilitiesEx()
+        if self.get_capabilities_ex(1, slot, 0, ctypes.byref(capabilities)) != 0 or capabilities.vid == 0:
+            return None
+        return capabilities.vid, capabilities.pid
 
     def __call__(self, slot):
         state = State()
@@ -189,6 +261,9 @@ class WindowsTarget:
         from vgamepad.win.virtual_gamepad import check_err
         self.pad = vg.VX360Gamepad()
         self.vc, self.check_err = vc, check_err
+
+    def identity(self):
+        return self.pad.get_vid(), self.pad.get_pid()
 
     def user_index(self):
         index = ctypes.c_uint32()

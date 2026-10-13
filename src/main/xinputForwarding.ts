@@ -70,7 +70,7 @@ export class XinputForwarding {
     if (!proc) throw new Error('XInput helper unavailable')
     return new Promise((resolve, reject) => {
       const id = ++this.seq
-      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error('XInput command timed out')); proc.kill() }, 5000)
+      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error('XInput command timed out')); proc.kill() }, command === 'start' ? 15000 : 5000)
       this.pending.set(id, { resolve, reject, timer })
       proc.stdin.write(JSON.stringify({ id, command, ...fields }) + '\n', error => {
         if (!error) return

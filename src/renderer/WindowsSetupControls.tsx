@@ -1,3 +1,4 @@
+import HidHideRoutingControls from './HidHideRoutingControls'
 import { useEffect, useState } from 'react'
 import { api } from './api'
 import type { WindowsDriver, WindowsSetupStatus } from '@shared/windowsSetup'
@@ -28,8 +29,9 @@ export default function WindowsSetupControls(): JSX.Element {
         <button className="btn sm" disabled={busy} onClick={() => void refresh().catch(e => setError(e.message))}>Check setup again</button>
       </div>
       <p className="hint">Windows will ask for administrator approval to install drivers. A restart may be required. Existing driver installations are reused. HidHide setup also installs the included Microsoft runtime if it is missing.</p>
-      <p>In HidHide, allow this helper executable: <span className="mono">resources/windows-runtime/xinputbridge/xinputbridge.exe</span> inside your Stick Labs installation. Hide only the MATRIX gamepad interface from games. Keep keyboard and mouse interfaces visible. The app does not hide devices automatically.</p>
+      <p>Advanced setup can also allow this helper executable: <span className="mono">resources/windows-runtime/xinputbridge/xinputbridge.exe</span> inside your Stick Labs installation. Hide only the MATRIX gamepad interface from games. Keep keyboard and mouse interfaces visible. The app does not hide devices automatically.</p>
     </> : <p>Driver setup is available in the Windows application.</p>}
+    {status?.supported && status.hidHideInstalled && <HidHideRoutingControls />}
     {message && <p role="status">{message}</p>}{error && <div className="note bad" role="alert">{error}</div>}
   </div>
 }

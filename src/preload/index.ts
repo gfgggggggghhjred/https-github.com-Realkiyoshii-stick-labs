@@ -12,6 +12,9 @@ async function call<T>(channel: string, ...args: unknown[]): Promise<T> {
 }
 
 const api = {
+  windowsSetupStatus: () => call<import('../shared/windowsSetup').WindowsSetupStatus>('windows:setupStatus'),
+  windowsInstallDriver: (driver: import('../shared/windowsSetup').WindowsDriver) => call<{ rebootRequired: boolean }>('windows:installDriver', driver),
+  windowsOpenRouting: () => call<void>('windows:openRouting'),
   xinputStatus: () => call<import('../shared/xinputForwarding').ForwardingStatus>('xinput:status'),
   xinputSources: () => call<import('../shared/xinputForwarding').XinputSource[]>('xinput:sources'),
   xinputStart: (source: number, settings: import('../shared/xinput').PreviewSettings) => call<import('../shared/xinputForwarding').ForwardingStatus>('xinput:start', source, settings),

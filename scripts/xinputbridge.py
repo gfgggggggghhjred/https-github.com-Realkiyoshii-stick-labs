@@ -217,5 +217,24 @@ def main():
     return 0
 
 
+def runtime_check():
+    if os.name != 'nt':
+        raise RuntimeError('Runtime check requires Windows')
+    WindowsReader()
+    from pathlib import Path
+    if getattr(sys, 'frozen', False):
+        base = Path(sys._MEIPASS) / 'vgamepad'
+    else:
+        import importlib.util
+        base = Path(importlib.util.find_spec('vgamepad').origin).parent
+    dll = base / 'win' / 'vigem' / 'client' / ('x64' if ctypes.sizeof(ctypes.c_void_p) == 8 else 'x86') / 'ViGEmClient.dll'
+    library = ctypes.WinDLL(str(dll))
+    getattr(library, 'vigem_target_x360_update')
+    emit({'runtime': 'ready', 'xinput': True, 'vigemClient': True})
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    if '--runtime-check' in sys.argv:
+        runtime_check()
+    else:
+        sys.exit(main())

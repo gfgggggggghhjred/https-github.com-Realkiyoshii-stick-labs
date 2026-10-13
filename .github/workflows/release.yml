@@ -6,8 +6,13 @@ on:
       release_tag:
         description: 'Existing release tag to build (for example v2.2.0)'
         required: true
-        default: 'v2.2.0'
+        default: 'v2.3.0'
         type: string
+      publish_release:
+        description: 'Publish application assets after the Windows build succeeds'
+        required: true
+        default: true
+        type: boolean
   push:
     tags:
       - 'v*'
@@ -33,7 +38,15 @@ jobs:
         with:
           python-version: '3.12'
       - run: python tests/test_xinputbridge.py
-      - run: npm run dist -- --publish always
+      - name: Bundle forwarding runtime and verified driver installers
+        shell: pwsh
+        run: ./scripts/build-windows-runtime.ps1
+      - name: Package Windows application
+        if: github.event_name != 'workflow_dispatch' || inputs.publish_release
+        run: npm run dist -- --publish always
+      - name: Verify Windows application without publishing
+        if: github.event_name == 'workflow_dispatch' && !inputs.publish_release
+        run: npm run dist -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Artifacts publish via electron-builder's `publish` config in

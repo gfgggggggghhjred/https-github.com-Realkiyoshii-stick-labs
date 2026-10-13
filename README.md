@@ -73,3 +73,7 @@ Run the software checks with `npm run typecheck`, `npm test`, `python tests/test
 ## Downloads
 
 Windows installers and portable executables are published at https://github.com/gfgggggggghhjred/https-github.com-Realkiyoshii-stick-labs/releases . The older source ZIP remains in the repository for reference.
+
+## Included Windows setup (2.3.0)
+
+Windows x64 downloads bundle the Xbox forwarding runtime and driver installers. Use **Windows forwarding setup** inside the Xbox 360 / XInput panel; Python and pip are no longer required for that feature. Driver setup still requires Windows administrator approval, and source-device routing is a guided manual step. See [setup instructions](docs/xim-matrix.md) and [runtime notices](docs/windows-runtime-notices.md).

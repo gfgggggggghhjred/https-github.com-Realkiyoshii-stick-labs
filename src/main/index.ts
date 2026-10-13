@@ -1,3 +1,4 @@
+import { windowsSetupStatus, installWindowsDriver, openHidHideSetup } from './windowsSetup'
 import { xinputForwarding } from './xinputForwarding'
 /**
  * G7 Stick Lab — stick-only Electron main. No remap/macros/lighting code.
@@ -186,6 +187,9 @@ handle('fly:close', () => {
   flyBridge.close()
   return true
 })
+handle('windows:setupStatus', () => windowsSetupStatus())
+handle('windows:installDriver', (driver: import('../shared/windowsSetup').WindowsDriver) => installWindowsDriver(driver))
+handle('windows:openRouting', () => openHidHideSetup())
 handle('xinput:status', () => xinputForwarding.status())
 handle('xinput:sources', () => xinputForwarding.sources())
 handle('xinput:start', (source: number, settings: import('../shared/xinput').PreviewSettings) => xinputForwarding.start(source, settings))

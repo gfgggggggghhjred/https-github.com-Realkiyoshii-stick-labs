@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 import { app } from 'electron'
 import { validPreview, type PreviewSettings } from '../shared/xinput'
 import type { ForwardingStatus, XinputSource } from '../shared/xinputForwarding'
@@ -26,14 +27,19 @@ export class XinputForwarding {
     if (this.starting) return this.starting
     if (this.proc) return
     this.starting = new Promise<void>((resolve, reject) => {
-      const python = process.env.STICKLABS_PYTHON || 'python'
-      const proc = spawn(python, ['-u', join(app.getAppPath(), 'scripts', 'xinputbridge.py')], { windowsHide: true, stdio: 'pipe' })
+      const helper = app.isPackaged
+        ? join(process.resourcesPath, 'windows-runtime', 'xinputbridge', 'xinputbridge.exe')
+        : join(app.getAppPath(), 'build', 'windows-runtime', 'xinputbridge', 'xinputbridge.exe')
+      if (app.isPackaged && !existsSync(helper)) { reject(new Error('Bundled forwarding helper is missing. Reinstall Stick Labs.')); return }
+      const executable = existsSync(helper) ? helper : process.env.STICKLABS_PYTHON || 'python'
+      const args = existsSync(helper) ? [] : ['-u', join(app.getAppPath(), 'scripts', 'xinputbridge.py')]
+      const proc = spawn(executable, args, { windowsHide: true, stdio: 'pipe' })
       this.proc = proc
       let ready = false
       const timer = setTimeout(() => { reject(new Error('XInput helper startup timed out')); proc.kill() }, 10000)
       const fail = (error: Error): void => { clearTimeout(timer); this.reset(error, proc); if (!ready) reject(error) }
       proc.on('error', fail)
-      proc.on('exit', () => fail(new Error(this.error || 'XInput helper exited. Install Python, vgamepad and ViGEmBus on Windows.')))
+      proc.on('exit', () => fail(new Error(this.error || 'XInput helper exited. Use Windows setup in the app to install the virtual controller driver.')))
       proc.stdin.on('error', fail)
       let stderr = ''
       proc.stderr.on('data', (chunk: Buffer) => { stderr = (stderr + chunk.toString()).slice(-2000); this.error = stderr })
@@ -72,7 +78,7 @@ export class XinputForwarding {
     })
   }
   async status(): Promise<ForwardingStatus> {
-    if (process.platform !== 'win32') return { supported: false, running: false, sourceSlot: null, outputSlot: null, error: 'Forwarding requires Windows 10/11, Python, vgamepad and the signed ViGEmBus driver.' }
+    if (process.platform !== 'win32') return { supported: false, running: false, sourceSlot: null, outputSlot: null, error: 'Forwarding requires Windows 10/11. Packaged Windows builds include the helper; use Windows setup to install drivers.' }
     if (!this.proc) return { supported: true, running: false, sourceSlot: null, outputSlot: null, error: this.error }
     return { supported: true, ...await this.request('status') }
   }

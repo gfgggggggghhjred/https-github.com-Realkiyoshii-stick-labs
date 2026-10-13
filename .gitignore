@@ -4,3 +4,7 @@ dist/
 .probe-tmp/
 .test-tmp/
 .git/
+
+build/windows-runtime/
+build/pyinstaller-work/
+build/pyinstaller-spec/

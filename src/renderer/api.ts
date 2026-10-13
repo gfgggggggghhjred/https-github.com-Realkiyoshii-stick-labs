@@ -42,6 +42,9 @@ export interface LiveSample {
 }
 
 interface LabApi {
+  windowsSetupStatus(): Promise<import('@shared/windowsSetup').WindowsSetupStatus>
+  windowsInstallDriver(driver: import('@shared/windowsSetup').WindowsDriver): Promise<{ rebootRequired: boolean }>
+  windowsOpenRouting(): Promise<void>
   xinputStatus(): Promise<import('@shared/xinputForwarding').ForwardingStatus>
   xinputSources(): Promise<import('@shared/xinputForwarding').XinputSource[]>
   xinputStart(source: number, settings: import('@shared/xinput').PreviewSettings): Promise<import('@shared/xinputForwarding').ForwardingStatus>

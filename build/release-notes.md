@@ -1,16 +1,12 @@
-# Stick Labs 2.2.0
+# Stick Labs 2.3.0
 
-Adds an Xbox 360 / XInput panel for testing standard Windows gamepad output, including Wooting 60HE -> XIM MATRIX -> Windows setups.
+Windows forwarding setup is now included in the application.
 
-- Live sticks, triggers, button indicators and axis range diagnostics.
-- Diagnostic JSON exports and validated local preview presets.
-- Deadzone, outer saturation, response exponent and axis inversion adjustments.
-- Experimental Windows forwarding to a virtual Xbox 360 controller: buttons and triggers pass through; stick transforms apply to both sticks.
-- Explicit native XInput source selection, feedback-loop slot checks, neutral shutdown, source-disconnect stop and a control-connection watchdog.
-- Corrected the default test runner to execute existing suites; Windows release CI also runs the Python backend tests.
+- Bundled XInput helper executable with its Python runtime, vgamepad and ViGEmClient DLL: no separate Python/pip installation for Xbox forwarding.
+- In-app detection and installation buttons for the signed ViGEmBus driver and optional HidHide.
+- Bundled Microsoft Visual C++ runtime installer for HidHide's configuration client when needed.
+- Publisher-signature verification during packaging and before running an elevated installer.
+- Existing driver installations are reused. Windows retains its normal administrator prompts and reboot requirements.
+- A button opens HidHide's configuration client for source-device routing.
 
-## Windows forwarding requirements and limitations
-
-Forwarding requires separately installed Python, vgamepad 0.1.3 and a production-signed ViGEmBus driver. ViGEmBus is retired upstream. HidHide or game-specific controller selection may be needed to prevent duplicate input. See docs/xim-matrix.md in the repository for installation and routing steps.
-
-The backend has automated simulation coverage but has not been validated on physical Windows/MATRIX hardware. Compatibility with every Windows game is not guaranteed. Rumble and Guide-button extensions are not forwarded. Host-side transforms do not change MATRIX/Wooting firmware, hardware polling rate, sensor bit depth, calibration or onboard profiles. Manager and Wootility remain the tools for hardware settings.
+Windows x64 packages include dependency installers and license notices. The Flydigi Python bridge is separate and is not bundled by this change. ViGEmBus remains retired upstream. Input forwarding still needs real Windows/MATRIX and game validation; firmware/ADC/polling changes are not provided. Select the correct source and configure hiding or game controller selection to prevent duplicate input. Automatic keyboard/mouse hiding is deliberately not performed.

@@ -46,27 +46,23 @@ For Steam titles, investigate per-game Steam Input settings. The existing Steam 
 
 For all Windows titles, a virtual controller backend and source-device routing are required. A native Windows helper must read an explicitly selected XInput slot, transform it and submit to a virtual Xbox device. Ensure the virtual output is never re-selected as its own source; handle source loss by publishing neutral state. Games must use the adjusted virtual device rather than both source and virtual devices. A signed virtual-controller driver and Windows hardware validation are prerequisites. The cloud Linux environment cannot establish Windows driver readiness. A Windows-only Python backend is now implemented, using native XInputGetState and vgamepad/ViGEmBus. It is not validated on real Windows hardware yet.
 
-## Windows forwarding setup
+## Windows forwarding setup (2.3.0)
 
-This backend changes the input presented by a **virtual Xbox 360 controller**, not MATRIX settings. Games outside Steam can use this standard XInput device, but individual games may require a specific controller slot or reject virtual controllers. Universal game compatibility has not been established. Source and virtual outputs must not both control the game.
+The installer and portable Windows x64 application include the forwarding helper, Python runtime, vgamepad and ViGEmClient. You do not need Python or pip for packaged Xbox forwarding. Driver installers and license notices are bundled under resources/windows-runtime. Portable mode still requires machine-level drivers; it is not a driver-free application.
 
-1. Install a current supported Python 3 release for Windows. If it is not on PATH, set `STICKLABS_PYTHON` to the full path of its interpreter before launching Stick Labs.
-2. Install the production-signed ViGEmBus driver from its official releases: https://github.com/nefarius/ViGEmBus/releases . ViGEmBus is retired upstream; this integration is experimental and uses the existing signed driver, not unsigned/test-mode drivers. Do not disable Windows driver-signature verification.
-3. From the project directory in PowerShell, install the pinned helper dependency, keeping the package from launching its bundled older driver installer:
+1. Open **Xbox 360 / XInput** and locate **Windows forwarding setup**.
+2. If the virtual controller driver is missing, click **Install virtual controller driver** and approve the normal Windows administrator prompt. The app verifies the Nefarius publisher signature before launching the official ViGEmBus installer.
+3. If your game cannot select the virtual controller instead of the original MATRIX output, click **Install optional HidHide**. Its prerequisite Microsoft runtime is installed first if missing, through the signed Microsoft installer. Restart Windows if either installer requests it.
+4. Open **device routing setup**. In HidHide's Applications list, allow the exact bundled helper, `resources/windows-runtime/xinputbridge/xinputbridge.exe` under your Stick Labs installation. Select only MATRIX's gamepad interface for hiding, leaving keyboard and mouse interfaces visible. The program does not change hide lists or whitelist rules automatically.
+5. Connect MATRIX first, refresh Windows XInput slots, move mapped analog keys and identify the native source slot from the displayed readings. Browser indices and Windows slots are separate.
+6. Confirm routing, choose adjustments, then **Start forwarding**. Apply further edits with **Apply edited settings to output**. Keep Stick Labs open; switching tabs does not stop forwarding.
+7. Verify that the game reads only the virtual controller and test buttons/triggers, neutral release and disconnect handling. Stop forwarding before rearranging controllers. Some games need a specific slot or disallow virtual devices; universal game compatibility has not been established.
 
-   ```powershell
-   $env:VGAMEPAD_SKIP_VIGEMBUS_INSTALL = 'true'
-   python -m pip install -r scripts/requirements-xinput-windows.txt
-   ```
+Both sticks share radial deadzone/saturation/curve settings (including a circular output gate at defaults). Buttons and triggers pass through. Guide-button extensions and rumble return traffic are not implemented. Host loop timing is not USB polling rate or guaranteed game latency. MATRIX firmware/profile editing and Wooting configuration remain in their official tools.
 
-4. Connect MATRIX first. Keep other controllers disconnected while initially validating source selection. Open **Xbox 360 / XInput**, adjust the local settings and refresh **Windows XInput slots**. Move mapped analog keys and use the displayed native axis/trigger values to identify the correct source. The browser index is deliberately not used as a Windows XInput slot.
-5. Configure the game to use the virtual controller. For games that cannot select a controller, use the official HidHide utility (https://github.com/nefarius/HidHide/releases): allow the exact Python interpreter running the helper to see the physical source, and hide only MATRIX's gamepad interface from other applications. Do not hide keyboard/mouse interfaces. Stick Labs does not install drivers or modify HidHide rules automatically. This configuration requires local Windows access and administrator approval when installing drivers.
-6. Confirm the source/routing checkbox, then **Start forwarding**. The UI reports source and virtual slot numbers only after the virtual target is allocated and its native index is verified not to overlap any occupied input slot. If all four XInput slots are occupied, startup refuses to allocate a target.
-7. Further edits remain previews until **Apply edited settings to output** is clicked. Both sticks share the currently displayed settings. Transformation is radial (a circular gate), including at defaults; resetting preview does not necessarily reproduce a square-gated physical output.
-8. Test movement, triggers and buttons in the game's controller screen. Ensure the game uses the virtual controller only. Test release-to-neutral, disconnect and stop behavior before normal use. Source loss stops forwarding; reconnect requires explicit source selection and restart. Do not rearrange devices while forwarding, since XInput provides slot state rather than persistent device identity.
-9. Click **Stop forwarding** before changing devices or returning to unadjusted input. A normal helper shutdown sends a neutral report before removing the virtual device. The helper also stops on a five-second control watchdog timeout and on stdin EOF. Backend forwarding continues if the UI tab is changed; quit the app or click Stop to end it.
+For development builds without a bundled helper, the existing Python fallback is retained. Set `VGAMEPAD_SKIP_VIGEMBUS_INSTALL=true` and install `scripts/requirements-xinput-windows.txt` into the Python interpreter chosen by `STICKLABS_PYTHON`; this is unnecessary for packaged downloads. Flydigi uses a separate Python bridge and retains its original requirements.
 
-The helper targets roughly a 4 ms host loop. This is not a USB polling-rate change or a guaranteed latency/rate. Guide-button extensions and rumble/force feedback return traffic are not implemented. Firmware calibration, ADC precision and MATRIX onboard profile management remain in the manufacturer tools.
+Build the bundled helper and verified dependencies on Windows using `scripts/build-windows-runtime.ps1`. The CI runtime smoke check loads native XInput and the collected ViGEmClient DLL without requiring a physical source or installed bus driver. Signatures must validate; do not bypass verification to fix a download or installation problem.
 
 ## Backend validation limits
 

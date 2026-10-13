@@ -21,7 +21,8 @@ foreach ($driver in $drivers) {
     if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch $driver.Publisher) {
         throw "Driver signature validation failed for $($driver.Name): $($signature.Status)"
     }
-    Get-FileHash -Algorithm SHA256 $file
+    python -c "import hashlib,sys; print(sys.argv[1], hashlib.sha256(open(sys.argv[1], 'rb').read()).hexdigest())" $file
+    if ($LASTEXITCODE -ne 0) { throw 'Installer checksum reporting failed' }
 }
 $licenses = 'build/windows-runtime/licenses'
 New-Item -ItemType Directory -Force $licenses | Out-Null

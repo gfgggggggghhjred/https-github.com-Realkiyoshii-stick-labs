@@ -1,6 +1,6 @@
 {
   "name": "g7-stick-lab",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "GameSir G7 Pro 8K stick-only tuner \u2014 bit depth, curves, deadzone, polling",
   "main": "out/main/index.js",
   "author": "Kai",
@@ -11,8 +11,9 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "node scripts/test.mjs",
-    "dist": "electron-vite build && electron-builder --win",
-    "dist:portable": "electron-vite build && electron-builder --win portable"
+    "dist": "npm run bundle:windows && electron-vite build && electron-builder --win",
+    "dist:portable": "npm run bundle:windows && electron-vite build && electron-builder --win portable",
+    "bundle:windows": "powershell -NoProfile -File ./scripts/build-windows-runtime.ps1"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",

@@ -11,7 +11,7 @@ function resources(): string {
 }
 function quote(value: string): string { return "'" + value.replace(/'/g, "''") + "'" }
 async function powershell(script: string, timeout = 30000): Promise<string> {
-  const encoded = Buffer.from("$ErrorActionPreference = 'Stop'; " + script, 'utf16le').toString('base64')
+  const encoded = Buffer.from("$ErrorActionPreference = 'Stop'; Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Security/Microsoft.PowerShell.Security.psd1') -ErrorAction Stop; " + script, 'utf16le').toString('base64')
   const result = await execute('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded], { windowsHide: true, timeout, maxBuffer: 1024 * 1024 })
   return result.stdout.trim()
 }

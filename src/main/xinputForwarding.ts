@@ -1,3 +1,4 @@
+import { installWindowsDriver } from './windowsSetup'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { join } from 'node:path'
@@ -81,6 +82,12 @@ export class XinputForwarding {
     if (process.platform !== 'win32') return { supported: false, running: false, sourceSlot: null, outputSlot: null, error: 'Forwarding requires Windows 10/11. Packaged Windows builds include the helper; use Windows setup to install drivers.' }
     if (!this.proc) return { supported: true, running: false, sourceSlot: null, outputSlot: null, error: this.error }
     return { supported: true, ...await this.request('status') }
+  }
+  async installDriver(): Promise<void> {
+    const status = await this.status()
+    if (status.running) throw new Error('Stop forwarding before installing a driver.')
+    this.close()
+    await installWindowsDriver('vigem')
   }
   async sources(): Promise<XinputSource[]> { return this.request('sources') }
   async start(source: number, settings: PreviewSettings): Promise<ForwardingStatus> {

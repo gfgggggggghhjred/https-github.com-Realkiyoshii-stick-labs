@@ -1,4 +1,4 @@
-# Stick Labs 2.3.0
+# Stick Labs 2.3.1
 
 Windows forwarding setup is now included in the application.
 
@@ -10,3 +10,5 @@ Windows forwarding setup is now included in the application.
 - A button opens HidHide's configuration client for source-device routing.
 
 Windows x64 packages include dependency installers and license notices. The Flydigi Python bridge is separate and is not bundled by this change. ViGEmBus remains retired upstream. Input forwarding still needs real Windows/MATRIX and game validation; firmware/ADC/polling changes are not provided. Select the correct source and configure hiding or game controller selection to prevent duplicate input. Automatic keyboard/mouse hiding is deliberately not performed.
+
+Preserves the calibration and dual-stick jitter features introduced by the newer 2.3.0 source. The upstream unattended vgamepad dependency pin is retained.

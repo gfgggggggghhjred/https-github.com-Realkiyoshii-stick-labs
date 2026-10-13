@@ -46,7 +46,7 @@ For Steam titles, investigate per-game Steam Input settings. The existing Steam 
 
 For all Windows titles, a virtual controller backend and source-device routing are required. A native Windows helper must read an explicitly selected XInput slot, transform it and submit to a virtual Xbox device. Ensure the virtual output is never re-selected as its own source; handle source loss by publishing neutral state. Games must use the adjusted virtual device rather than both source and virtual devices. A signed virtual-controller driver and Windows hardware validation are prerequisites. The cloud Linux environment cannot establish Windows driver readiness. A Windows-only Python backend is now implemented, using native XInputGetState and vgamepad/ViGEmBus. It is not validated on real Windows hardware yet.
 
-## Windows forwarding setup (2.3.0)
+## Windows forwarding setup (2.3.1)
 
 The installer and portable Windows x64 application include the forwarding helper, Python runtime, vgamepad and ViGEmClient. You do not need Python or pip for packaged Xbox forwarding. Driver installers and license notices are bundled under resources/windows-runtime. Portable mode still requires machine-level drivers; it is not a driver-free application.
 
@@ -66,4 +66,6 @@ Build the bundled helper and verified dependencies on Windows using `scripts/bui
 
 ## Backend validation limits
 
-Ten Python tests with injected source/target adapters cover native axis endpoints and Y orientation, transform math, buttons/triggers passthrough, settings validation, explicit source selection, virtual-index conflict rejection, full XInput slots, source disconnect, no automatic reattachment, watchdog timeout, stop and output exclusion from the source list. These are simulation tests; they do not load the Windows driver or validate Windows packaging. The helper emits a clear unsupported-platform result on Linux. Real XInput/ViGEmBus/HidHide integration and actual game compatibility require local Windows verification.
+Fifteen Python tests with injected source/target adapters cover native axis endpoints and Y orientation, transform math, buttons/triggers passthrough, settings validation, explicit source selection, virtual-index conflict rejection, full XInput slots, source disconnect, no automatic reattachment, watchdog timeout, stop and output exclusion from the source list. These are simulation tests; they do not load the Windows driver or validate Windows packaging. The helper emits a clear unsupported-platform result on Linux. Real XInput/ViGEmBus/HidHide integration and actual game compatibility require local Windows verification.
+
+The calibration and dual-stick jitter additions from version 2.3.0 are preserved. Center/range corrections are host-side output transforms and do not change factory calibration.

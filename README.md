@@ -57,14 +57,14 @@ build, the installer is the shareable artifact.
 3. (Later, optional) Code-signing: set `CSC_LINK`/`CSC_KEY_PASSWORD` in
    CI secrets and SmartScreen warnings fade as reputation builds.
 4. Cut a release: bump `version`, commit, `git tag v1.0.0`, `git push --tags`.
-   CI typechecks, tests, builds, and publishes both exes to the Release —
+   Version changes pushed to main also trigger publishing. CI typechecks, tests, builds, and publishes both exes to the Release —
    and packaged apps auto-update from those Releases.
 
-## Xbox 360 / XInput support (2.2.0)
+## Xbox 360 / XInput support (2.3.0)
 
 Open **Xbox 360 / XInput** to select standard Windows gamepad output and test sticks, triggers, buttons and axis ranges. Deadzone, saturation, response exponent and inversion can be previewed and saved locally.
 
-Experimental Windows forwarding sends adjusted sticks and passthrough triggers/buttons to a virtual Xbox 360 controller for games that accept virtual XInput. It requires Python, vgamepad and signed ViGEmBus, with source-device routing configured separately. Actual Windows/MATRIX hardware behavior remains unverified; this release does not guarantee compatibility with every game.
+Experimental Windows forwarding sends adjusted sticks and passthrough triggers/buttons to a virtual Xbox 360 controller for games that accept virtual XInput. Windows releases bundle Python and vgamepad in a standalone helper. Use the in-app Install / repair Windows driver button for the bundled signed ViGEmBus installer (administrator approval required). Source-device routing is configured separately; when using HidHide, allow the bundled `resources/windows/sticklabs-xinput/sticklabs-xinput.exe` helper. Development builds still require Python and the pinned requirements. Actual Windows/MATRIX hardware behavior remains unverified; this release does not guarantee compatibility with every game.
 
 See [Windows setup and feature coverage](docs/xim-matrix.md). Continue using MATRIX Manager and Wootility to edit hardware settings.
 
@@ -74,6 +74,12 @@ Run the software checks with `npm run typecheck`, `npm test`, `python tests/test
 
 Windows installers and portable executables are published at https://github.com/gfgggggggghhjred/https-github.com-Realkiyoshii-stick-labs/releases . The older source ZIP remains in the repository for reference.
 
-## Included Windows setup (2.3.0)
+## Virtual left-stick calibration and feel
 
-Windows x64 downloads bundle the Xbox forwarding runtime and driver installers. Use **Windows forwarding setup** inside the Xbox 360 / XInput panel; Python and pip are no longer required for that feature. Driver setup still requires Windows administrator approval, and source-device routing is a guided manual step. See [setup instructions](docs/xim-matrix.md) and [runtime notices](docs/windows-runtime-notices.md).
+Capture a stable resting center (two seconds), reset ranges, sweep the left stick through full travel, then capture travel. Calibration, curve exponent, deadzone, and saturation save locally and export with presets. These are software adjustments; they do not rewrite hardware calibration. Calibration applies only to the left stick. Independent left/right jitter sliders control smooth variation on each stick; both share the variation rate. Variation is disabled by default, ranges from 0–5%, and returns to exact neutral on release by default. Each stick has an Always on option that continues jitter at rest; zero strength still disables it. Curve presets include linear, precision, and quick response. Apply edited settings while forwarding to update game output.
+
+Windows packaging runs `npm run bundle:windows` to freeze the helper and fetch the original ViGEmBus 1.22.0 installer. Build and runtime verify its Authenticode signature and publisher. Driver setup can request a reboot. ViGEmBus is retired upstream; hardware compatibility and Windows installation need testing on an actual Windows machine. Building a release requires Windows, Python, and network access.
+
+## Guided Windows setup (2.3.1)
+
+The app now bundles signed HidHide and Microsoft runtime installers alongside the Xbox forwarding runtime and ViGEmBus. It detects installed drivers and opens routing setup. No Python/pip setup is needed for packaged Xbox forwarding. Windows approval and device routing selection remain required.

@@ -1,6 +1,6 @@
 # Bundled Windows runtime
 
-Stick Labs packages its XInput forwarding helper with CPython and vgamepad 0.1.3 using PyInstaller 6.11.1. Python or pip installation on the user's machine is not required for packaged forwarding. The Flydigi bridge is a separate feature and is not converted by this change.
+Stick Labs packages its XInput forwarding helper with CPython and vgamepad from pinned upstream commit c1d728a6813760a5be21ac9379f4b23347fe8345 (the source identifies itself as 0.1.3) using PyInstaller 6.11.1. Python or pip installation on the user's machine is not required for packaged forwarding. The Flydigi bridge is a separate feature and is not converted by this change.
 
 The runtime includes vgamepad's ViGEmClient DLL. Official production-signed ViGEmBus 1.22.0 and HidHide 1.5.230.0 installers are redistributed with their license notices. ViGEmBus is retired upstream. Bundling does not change its support status. Driver installation is optional, uses normal Windows elevation and preserves signature verification.
 

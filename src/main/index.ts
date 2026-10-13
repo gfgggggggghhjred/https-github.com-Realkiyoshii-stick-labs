@@ -188,8 +188,13 @@ handle('fly:close', () => {
   return true
 })
 handle('windows:setupStatus', () => windowsSetupStatus())
-handle('windows:installDriver', (driver: import('../shared/windowsSetup').WindowsDriver) => installWindowsDriver(driver))
+handle('windows:installDriver', async (driver: import('../shared/windowsSetup').WindowsDriver) => {
+  if ((await xinputForwarding.status()).running) throw new Error('Stop forwarding before installing a driver.')
+  xinputForwarding.close()
+  return installWindowsDriver(driver)
+})
 handle('windows:openRouting', () => openHidHideSetup())
+handle('xinput:install-driver', () => xinputForwarding.installDriver())
 handle('xinput:status', () => xinputForwarding.status())
 handle('xinput:sources', () => xinputForwarding.sources())
 handle('xinput:start', (source: number, settings: import('../shared/xinput').PreviewSettings) => xinputForwarding.start(source, settings))

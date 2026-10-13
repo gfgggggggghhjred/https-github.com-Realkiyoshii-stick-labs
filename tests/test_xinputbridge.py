@@ -21,6 +21,63 @@ class Target:
         self.closed = True
 
 class Tests(unittest.TestCase):
+    def test_calibration_and_validation(self):
+        calibrated = dict(DEFAULT, centerX=.1, centerY=-.05, rangeX=.8, rangeY=.9)
+        x, y = m.transform_stick(3277, 1638, calibrated)
+        self.assertAlmostEqual(x, 0, delta=2)
+        self.assertAlmostEqual(y, 0, delta=2)
+        for key, value in [('variation', 6), ('rightVariation', 6), ('centerX', float('nan')), ('rangeX', 0), ('variationSpeed', True)]:
+            with self.assertRaises(ValueError): m.validate_settings(dict(DEFAULT, **{key: value}))
+
+    def test_variation_neutral_bounds_and_time(self):
+        noise = m.AnalogVariation()
+        settings = dict(DEFAULT, variation=5, variationSpeed=2)
+        self.assertEqual(noise.apply(0, 0, settings, 0), (0, 0))
+        first = noise.apply(32767, 0, settings, 1)
+        second = noise.apply(32767, 0, settings, 1.25)
+        self.assertNotEqual(first, second)
+        self.assertEqual(second, noise.apply(32767, 0, settings, 1.25))
+        self.assertLessEqual(sum(v*v for v in second), 32768**2)
+        self.assertEqual(noise.apply(0, 0, settings, 2), (0, 0))
+        self.assertEqual(noise.apply(-32768, 0, DEFAULT, 3), (-32768, 0))
+
+    def test_always_on_jitter_at_rest_and_disabled(self):
+        noise = m.AnalogVariation()
+        settings = dict(DEFAULT, variation=2)
+        noise.apply(0, 0, settings, now=1, always=True)
+        noise.previous = noise.target = (1., -.5)
+        self.assertEqual(noise.apply(0, 0, settings, now=1.25, always=True), (655, -328))
+        self.assertEqual(noise.apply(0, 0, settings, now=1.25), (0, 0))
+        self.assertEqual(noise.apply(0, 0, DEFAULT, now=2, always=True), (0, 0))
+        for mode in ('leftJitterAlways', 'rightJitterAlways'):
+            with self.assertRaises(ValueError): m.validate_settings(dict(DEFAULT, **{mode: 1}))
+
+    def test_right_jitter_is_independent_and_releases(self):
+        state = m.Gamepad(lx=16384, rx=16384)
+        target = Target()
+        bridge = m.Bridge(lambda slot: state if slot == 0 else None, lambda: target)
+        bridge.start(0, dict(DEFAULT, rightVariation=5))
+        bridge.tick()
+        bridge.right_variation.previous = (1., 1.)
+        bridge.right_variation.target = (1., 1.)
+        bridge.right_variation.started = time.monotonic()
+        bridge.tick()
+        self.assertEqual(target.writes[-1][3:5], (16384, 0))
+        self.assertNotEqual(target.writes[-1][5:7], (16384, 0))
+        state.rx = 0
+        bridge.tick()
+        self.assertEqual(target.writes[-1][5:7], (0, 0))
+        self.assertIsNone(bridge.right_variation.started)
+
+    def test_left_only_calibration_and_variation(self):
+        state = m.Gamepad(lx=16384, ly=0, rx=16384, ry=0)
+        target = Target()
+        bridge = m.Bridge(lambda slot: state if slot == 0 else None, lambda: target)
+        bridge.start(0, dict(DEFAULT, centerX=.1, rangeX=.8, variation=1))
+        bridge.tick()
+        self.assertAlmostEqual(target.writes[-1][5], 16384, delta=1)
+        self.assertNotEqual(target.writes[-1][3], target.writes[-1][5])
+
     def test_axis_endpoints_and_y_convention(self):
         self.assertEqual(m.transform_stick(-32768, 0, DEFAULT), (-32768, 0))
         self.assertEqual(m.transform_stick(32767, 0, DEFAULT), (32767, 0))

@@ -8,3 +8,7 @@ dist/
 build/windows-runtime/
 build/pyinstaller-work/
 build/pyinstaller-spec/
+build/windows/
+build/pyinstaller/
+*.spec
+__pycache__/

@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import time
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('xinputbridge', Path(__file__).resolve().parents[1] / 'scripts' / 'xinputbridge.py')
 m = importlib.util.module_from_spec(spec)
@@ -40,6 +41,58 @@ class Tests(unittest.TestCase):
         self.assertLessEqual(sum(v*v for v in second), 32768**2)
         self.assertEqual(noise.apply(0, 0, settings, 2), (0, 0))
         self.assertEqual(noise.apply(-32768, 0, DEFAULT, 3), (-32768, 0))
+
+    def test_fast_jitter_validation(self):
+        for rate in (.2, 16, 32, 60):
+            self.assertEqual(m.validate_settings(dict(DEFAULT, variationSpeed=rate))['variationSpeed'], rate)
+        for rate in (0, 60.1, float('inf'), True):
+            with self.assertRaises(ValueError): m.validate_settings(dict(DEFAULT, variationSpeed=rate))
+
+    def test_slow_jitter_completes_long_intervals(self):
+        noise = m.AnalogVariation()
+        settings = dict(DEFAULT, variation=1, variationSpeed=.2)
+        with patch.object(m.random, 'uniform', return_value=1.):
+            for i in range(11):
+                noise.apply(16000, 0, settings, now=i * .5)
+        self.assertEqual(noise.value, (1., 1.))
+        self.assertEqual(noise.started, 5.)
+
+    def test_jitter_matches_across_different_sampling_schedules(self):
+        settings = dict(DEFAULT, variation=1, variationSpeed=32)
+        def sample(times):
+            noise = m.AnalogVariation()
+            with patch.object(m.random, 'uniform', side_effect=[.2, -.3, -.8, .4, .5, -.6, .1, .3]):
+                for t in times:
+                    result = noise.apply(16000, 0, settings, now=t)
+                return result
+        self.assertEqual(sample([0, .013, .036, .07, .1]), sample([i / 1000 for i in range(0, 101, 4)]))
+
+    def test_fast_jitter_retains_fractional_time(self):
+        noise = m.AnalogVariation()
+        settings = dict(DEFAULT, variation=1, variationSpeed=40)
+        with patch.object(m.random, 'uniform', side_effect=[1., 1., -1., -1.]):
+            noise.apply(16000, 0, settings, now=0)
+            noise.apply(16000, 0, settings, now=.029)
+        self.assertAlmostEqual(noise.started, .025)
+        self.assertLess(noise.value[0], 1.)
+        self.assertGreater(noise.value[0], .8)
+
+    def test_jitter_speed_changes_speed_without_changing_size_or_base(self):
+        settings = dict(DEFAULT, variation=1)
+        def offset(rate, now):
+            noise = m.AnalogVariation()
+            with patch.object(m.random, 'uniform', return_value=1.):
+                noise.apply(16000, 0, dict(settings, variationSpeed=rate), now=0)
+                return noise.apply(16000, 0, dict(settings, variationSpeed=rate), now=now)
+        self.assertNotEqual(offset(1, .01), offset(32, .01))
+        self.assertEqual(offset(1, .5), offset(32, .015625))
+        noise = m.AnalogVariation()
+        with patch.object(m.random, 'uniform', return_value=1.):
+            noise.apply(16000, 0, settings, now=0)
+            before = noise.apply(16000, 0, settings, now=.5)
+            self.assertEqual(before, noise.apply(16000, 0, dict(settings, variationSpeed=60), now=.5))
+        self.assertEqual(noise.apply(0, 0, dict(settings, variationSpeed=60), now=.6), (0, 0))
+        self.assertEqual(noise.apply(-32768, 0, dict(DEFAULT, variationSpeed=60), now=.7), (-32768, 0))
 
     def test_always_on_jitter_at_rest_and_disabled(self):
         noise = m.AnalogVariation()

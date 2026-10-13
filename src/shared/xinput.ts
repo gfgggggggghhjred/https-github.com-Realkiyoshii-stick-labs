@@ -24,7 +24,7 @@ export function validPreview(value: unknown): value is PreviewSettings {
     s.exponent >= 0.2 && s.exponent <= 5 && typeof s.invertX === 'boolean' && typeof s.invertY === 'boolean' &&
     (s.leftJitterAlways === undefined || typeof s.leftJitterAlways === 'boolean') &&
     (s.rightJitterAlways === undefined || typeof s.rightJitterAlways === 'boolean') &&
-    [['centerX', -.25, .25], ['centerY', -.25, .25], ['rangeX', .25, 1.5], ['rangeY', .25, 1.5], ['variation', 0, 5], ['rightVariation', 0, 5], ['variationSpeed', .2, 10]].every(([key, min, max]) => {
+    [['centerX', -.25, .25], ['centerY', -.25, .25], ['rangeX', .25, 1.5], ['rangeY', .25, 1.5], ['variation', 0, 5], ['rightVariation', 0, 5], ['variationSpeed', .2, 60]].every(([key, min, max]) => {
       const v = s[key as keyof PreviewSettings]; return v === undefined || typeof v === 'number' && Number.isFinite(v) && v >= Number(min) && v <= Number(max)
     })
 }

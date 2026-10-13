@@ -87,3 +87,9 @@ ViGEm's user-index query is backed by its cached LED state. Startup now waits fo
 3. Confirm the scanned MATRIX gamepad interface and click **Set up routing**. Only that gamepad is hidden; the bundled helper is allowed to read it. Keyboard and mouse interfaces stay visible.
 4. The helper launches and Windows source slots refresh automatically. Verify the source selection, confirm game routing, and click **Start forwarding**. If routing was configured previously, use **Launch helper & refresh slots**.
 5. **Open advanced HidHide application** opens the installed configuration client when manual troubleshooting is needed; **Undo Stick Labs routing** reverses this app's changes. MATRIX Manager and Wootility remain separate tools for hardware configuration.
+
+### Faster jitter (2.3.4)
+
+Jitter speed selects 0.2–60 new random targets per second for each enabled stick. Use **Fast · 16/s** to try quicker movement at the current strength; **Very fast · 32/s** is another comparison point. Speed and the left/right strength percentages are separate. Existing presets keep their saved speed. While forwarding, click **Apply edited settings to output** after editing. Zero strength disables jitter, including at rest.
+
+These are random target changes, not a periodic waveform or USB polling rate. The browser display may miss fast changes between frames; judge actual forwarded output and game feel as well. Jitter changes the generated offset without time-filtering the underlying stick input.

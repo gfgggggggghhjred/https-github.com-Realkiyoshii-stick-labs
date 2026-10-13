@@ -20,7 +20,7 @@ def validate_settings(s):
         raise ValueError('Adjustment settings out of range')
     if type(s.get('invertX')) is not bool or type(s.get('invertY')) is not bool:
         raise ValueError('Invalid inversion setting')
-    for key, low, high in [('centerX', -.25, .25), ('centerY', -.25, .25), ('rangeX', .25, 1.5), ('rangeY', .25, 1.5), ('variation', 0, 5), ('rightVariation', 0, 5), ('variationSpeed', .2, 10)]:
+    for key, low, high in [('centerX', -.25, .25), ('centerY', -.25, .25), ('rangeX', .25, 1.5), ('rangeY', .25, 1.5), ('variation', 0, 5), ('rightVariation', 0, 5), ('variationSpeed', .2, 60)]:
         value = s.get(key, 1 if key in ('rangeX', 'rangeY', 'variationSpeed') else 0)
         if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
             raise ValueError('Invalid setting: ' + key)
@@ -48,7 +48,7 @@ def transform_stick(x, y, s):
 
 
 class AnalogVariation:
-    """Time-based smooth noise, left stick only; exact neutral stays neutral."""
+    """Independent time-based jitter; exact neutral stays neutral by default."""
     def __init__(self):
         self.reset()
 
@@ -56,6 +56,9 @@ class AnalogVariation:
         self.previous = (0., 0.)
         self.target = (0., 0.)
         self.started = None
+        self.duration = None
+        self.last_update = None
+        self.value = (0., 0.)
 
     def apply(self, x, y, settings, now=None, always=False):
         amount = settings.get('variation', 0) / 100
@@ -64,13 +67,24 @@ class AnalogVariation:
             return x, y
         now = time.monotonic() if now is None else now
         duration = 1 / settings.get('variationSpeed', 1)
-        if self.started is None or now - self.started >= duration:
-            self.previous = self.target
+        if self.started is None or self.duration != duration or (self.last_update is not None and now - self.last_update > 1):
+            # Retain the current offset on a speed edit; do not jump the stick.
+            self.previous = self.value
             self.target = (random.uniform(-1, 1), random.uniform(-1, 1))
             self.started = now
+            self.duration = duration
+        else:
+            # Advance exact time boundaries, retaining fractional elapsed time.
+            # Resetting to 'now' here makes fast jitter slower at uneven ticks.
+            while now - self.started >= duration:
+                self.previous = self.target
+                self.target = (random.uniform(-1, 1), random.uniform(-1, 1))
+                self.started += duration
+        self.last_update = now
         t = min(1, max(0, (now - self.started) / duration))
         t = t * t * (3 - 2 * t)
         noise = [a + (b - a) * t for a, b in zip(self.previous, self.target)]
+        self.value = tuple(noise)
         if x == 0 and y == 0:
             return round(noise[0] * amount * 32767), round(noise[1] * amount * 32767)
         angle = noise[0] * amount

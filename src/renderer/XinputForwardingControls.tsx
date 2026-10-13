@@ -28,7 +28,7 @@ export default function XinputForwardingControls({ settings }: { settings: Previ
     try { await action() } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
   }
   const changed = applied !== JSON.stringify(settings)
-  return <><WindowsSetupControls disabled={setupBusy || busy || !!status?.running} onConnected={connected} onBusyChange={setSetupBusy} /><div className="card">
+  return <><WindowsSetupControls disabled={busy || !!status?.running} onConnected={connected} onBusyChange={setSetupBusy} /><div className="card">
     <h3>Forward adjusted input to Windows games</h3>
     <p>Creates a virtual Xbox 360 controller using the settings above. Both sticks are adjusted; buttons and triggers pass through. Keep Stick Labs running. This does not write to MATRIX or Wooting.</p>
     <p>Requires Windows 10/11 and the virtual controller driver. The Windows package includes the helper runtime. This Windows backend is experimental and has not been tested with your hardware. ViGEmBus is a retired upstream project.</p>
@@ -48,7 +48,7 @@ export default function XinputForwardingControls({ settings }: { settings: Previ
         setStatus(await api().xinputStart(source!, settings)); setApplied(JSON.stringify(settings))
       })}>Start forwarding</button>
       <button className="btn sm" disabled={setupBusy || busy || !status?.running || !changed} onClick={() => void perform(async () => { await api().xinputSettings(settings); setApplied(JSON.stringify(settings)) })}>Apply edited settings to output</button>
-      <button className="btn sm" disabled={setupBusy || busy || !status?.running} onClick={() => void perform(async () => { setStatus(await api().xinputStop()); setApplied(null) })}>Stop forwarding</button>
+      <button className="btn sm" disabled={busy || !status?.running} onClick={() => void perform(async () => { setStatus(await api().xinputStop()); setApplied(null) })}>Stop forwarding</button>
     </div>
     <p role="status">{status?.running ? `Forwarding slot ${(status.sourceSlot ?? 0) + 1} → virtual slot ${(status.outputSlot ?? 0) + 1}${changed ? ' · preview changes are not yet applied' : ''}` : 'Forwarding stopped'}</p>
     <p className="hint">Source disconnect or loss of the helper connection stops forwarding and releases input. Leave other controllers disconnected during use to avoid slot reassignment. USB polling-rate and hardware bit-depth settings remain unchanged. Rumble/force feedback is not forwarded to the source.</p>

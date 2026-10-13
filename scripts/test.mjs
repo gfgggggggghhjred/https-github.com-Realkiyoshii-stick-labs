@@ -30,7 +30,9 @@ const entry =
         'tests/flydigi.ts',
         'tests/steamcfg.ts',
         'tests/xinput.ts',
-        'tests/hidHideRouting.ts'
+        'tests/hidHideRouting.ts',
+        'tests/windowsTools.ts',
+        'tests/windowsSetupUi.tsx'
       ]
 
 // Must live inside the project so node can resolve node_modules (ESM does not

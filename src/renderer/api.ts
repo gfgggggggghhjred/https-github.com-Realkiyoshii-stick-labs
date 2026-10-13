@@ -47,7 +47,7 @@ interface LabApi {
   windowsUndoRouting(): Promise<import('@shared/hidHideRouting').RoutingState>
   windowsSetupStatus(): Promise<import('@shared/windowsSetup').WindowsSetupStatus>
   windowsInstallDriver(driver: import('@shared/windowsSetup').WindowsDriver): Promise<{ rebootRequired: boolean }>
-  windowsOpenRouting(): Promise<void>
+  windowsOpenRouting(): Promise<string>
   xinputInstallDriver(): Promise<void>
   xinputStatus(): Promise<import('@shared/xinputForwarding').ForwardingStatus>
   xinputSources(): Promise<import('@shared/xinputForwarding').XinputSource[]>

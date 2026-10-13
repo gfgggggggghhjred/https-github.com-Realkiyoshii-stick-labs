@@ -93,3 +93,9 @@ ViGEm's user-index query is backed by its cached LED state. Startup now waits fo
 Jitter speed selects 0.2–60 new random targets per second for each enabled stick. Use **Fast · 16/s** to try quicker movement at the current strength; **Very fast · 32/s** is another comparison point. Speed and the left/right strength percentages are separate. Existing presets keep their saved speed. While forwarding, click **Apply edited settings to output** after editing. Zero strength disables jitter, including at rest.
 
 These are random target changes, not a periodic waveform or USB polling rate. The browser display may miss fast changes between frames; judge actual forwarded output and game feel as well. Jitter changes the generated offset without time-filtering the underlying stick input.
+
+### Windows setup fixes (2.3.5)
+
+Scan routing devices, Open advanced HidHide application, and Check setup again now report their progress and results beside the buttons. Scanning and checking are available while forwarding runs; stop forwarding before changing routing. If a scan fails, its error stays visible and the controls unlock for another attempt. Use **Install / repair HidHide** if the tools are missing.
+
+Tool discovery supports the bundled `Program Files\Nefarius Software Solutions\HidHide\x64` layout, the newer flat HidHide directory, and older separate client/CLI directories. HidHide's command-line tool must receive EOF on its redirected input to finish; the app now closes that input immediately.

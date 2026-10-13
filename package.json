@@ -1,6 +1,6 @@
 {
   "name": "g7-stick-lab",
-  "version": "2.3.4",
+  "version": "2.3.5",
   "description": "GameSir G7 Pro 8K stick-only tuner — bit depth, curves, deadzone, polling",
   "main": "out/main/index.js",
   "author": "Kai",
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/react-test-renderer": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^33.2.0",
     "electron-builder": "^26.15.3",
@@ -29,6 +30,7 @@
     "esbuild": "^0.28.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-test-renderer": "^18.3.1",
     "typescript": "^5.7.2",
     "vite": "^5.4.11"
   },

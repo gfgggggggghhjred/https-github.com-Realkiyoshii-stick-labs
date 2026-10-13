@@ -11,6 +11,20 @@ export default function WindowsSetupControls({ disabled = false, onConnected, on
   const [routingBusy, setRoutingBusy] = useState(false)
   useEffect(() => { onBusyChange(busy || routingBusy); return () => onBusyChange(false) }, [busy, routingBusy, onBusyChange])
   async function refresh(): Promise<void> { setStatus(await api().windowsSetupStatus()) }
+  async function checkSetup(): Promise<void> {
+    setBusy(true); setError(null); setMessage('Checking installed Windows drivers…')
+    try {
+      await refresh()
+      setMessage(`Setup checked at ${new Date().toLocaleTimeString()}. Driver status is shown above.`)
+    } catch (e) { setError((e as Error).message); setMessage(null) } finally { setBusy(false) }
+  }
+  async function openAdvanced(): Promise<void> {
+    setBusy(true); setError(null); setMessage('Opening HidHide Configuration Client…')
+    try {
+      const path = await api().windowsOpenRouting()
+      setMessage(`HidHide launch requested: ${path}. Check the taskbar or Alt+Tab if its window is behind Stick Labs.`)
+    } catch (e) { setError((e as Error).message); setMessage(null) } finally { setBusy(false) }
+  }
   useEffect(() => { void refresh().catch(e => setError(e.message)) }, [])
   async function install(driver: WindowsDriver): Promise<void> {
     setBusy(true); setError(null); setMessage('Complete the Windows administrator prompt and driver installer.')
@@ -21,7 +35,7 @@ export default function WindowsSetupControls({ disabled = false, onConnected, on
     } catch (e) { setError((e as Error).message); setMessage(null) } finally { setBusy(false) }
   }
   async function connectAndSetUp(): Promise<void> {
-    setBusy(true); setError(null)
+    setBusy(true); setError(null); setMessage('Checking Windows setup…')
     try {
       let current = await api().windowsSetupStatus()
       setStatus(current)
@@ -48,14 +62,16 @@ export default function WindowsSetupControls({ disabled = false, onConnected, on
       <div className="row wrap" style={{ marginTop: 12 }}>
         <button className="btn primary" disabled={disabled || routingBusy || busy || !status.bundled} onClick={() => void connectAndSetUp()}>{busy ? 'Setting up…' : 'Connect & set up'}</button>
         <button className="btn sm primary" disabled={disabled || routingBusy || busy || !status.bundled || status.vigemInstalled} onClick={() => void install('vigem')}>Install virtual controller driver</button>
-        <button className="btn sm" disabled={disabled || routingBusy || busy || !status.bundled || status.hidHideInstalled} onClick={() => void install('hidhide')}>Install optional HidHide</button>
-        <button className="btn sm" disabled={disabled || routingBusy || busy || !status.hidHideInstalled} onClick={() => void api().windowsOpenRouting().catch(e => setError(e.message))}>Open advanced HidHide application</button>
-        <button className="btn sm" disabled={disabled || routingBusy || busy} onClick={() => void refresh().catch(e => setError(e.message))}>Check setup again</button>
+        <button className="btn sm" disabled={disabled || routingBusy || busy || !status.bundled} onClick={() => void install('hidhide')}>Install / repair HidHide</button>
+        <button className="btn sm" disabled={routingBusy || busy} onClick={() => void openAdvanced()}>Open advanced HidHide application</button>
+        <button className="btn sm" disabled={routingBusy || busy} onClick={() => void checkSetup()}>Check setup again</button>
       </div>
+      {disabled && <p className="note" role="status">Stop forwarding below and wait for any controller operation to finish before installing drivers or applying routing. You can still check setup, scan devices, and open HidHide. Stop forwarding before making changes in the HidHide application.</p>}
+      {message && <p role="status">{message}</p>}{error && <div className="note bad" role="alert">{error}</div>}
       <p className="hint">Windows will ask for administrator approval to install drivers. A restart may be required. Existing driver installations are reused. HidHide setup also installs the included Microsoft runtime if it is missing.</p>
       <p>Advanced setup can also allow this helper executable: <span className="mono">resources/windows-runtime/xinputbridge/xinputbridge.exe</span> inside your Stick Labs installation. Hide only the MATRIX gamepad interface from games. Keep keyboard and mouse interfaces visible. Guided setup asks you to confirm the interface before hiding it. Wootility and MATRIX Manager remain available for hardware settings; they are not required to run forwarding.</p>
     </> : <p>Driver setup is available in the Windows application.</p>}
-    {status?.supported && status.hidHideInstalled && <HidHideRoutingControls scanRequest={scanRequest} disabled={disabled || busy} onConnected={onConnected} onBusyChange={setRoutingBusy} />}
-    {message && <p role="status">{message}</p>}{error && <div className="note bad" role="alert">{error}</div>}
+    {status?.supported && status.hidHideInstalled && <HidHideRoutingControls scanRequest={scanRequest} disabled={disabled} scanningDisabled={busy} onConnected={onConnected} onBusyChange={setRoutingBusy} />}
+    {!status?.supported && error && <div className="note bad" role="alert">{error}</div>}
   </div>
 }

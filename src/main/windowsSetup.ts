@@ -1,10 +1,8 @@
-import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { promisify } from 'node:util'
 import { app, shell } from 'electron'
 import type { WindowsDriver, WindowsSetupStatus } from '../shared/windowsSetup'
-const execute = promisify(execFile)
+import { hidHideToolCandidates, runSetupTool as execute } from './windowsTools'
 let installing = false
 function resources(): string {
   return app.isPackaged ? join(process.resourcesPath, 'windows-runtime') : join(app.getAppPath(), 'build', 'windows-runtime')
@@ -46,18 +44,17 @@ export async function installWindowsDriver(driver: WindowsDriver): Promise<{ reb
     return { rebootRequired: await runInstaller(file, 'Nefarius') || rebootRequired }
   } finally { installing = false }
 }
-export async function openHidHideSetup(): Promise<void> {
+function findHidHideTool(tool: 'HidHideCLI' | 'HidHideClient'): string | undefined {
+  const roots = [process.env.ProgramW6432, process.env.ProgramFiles, process.env['ProgramFiles(x86)'], 'C:\\Program Files'].filter((value): value is string => !!value)
+  return hidHideToolCandidates(roots, tool).find(existsSync)
+}
+export async function openHidHideSetup(): Promise<string> {
   if (process.platform !== 'win32') throw new Error('Routing setup requires Windows')
-  const base = process.env.ProgramFiles || 'C:\\Program Files'
-  const candidates = [
-    join(base, 'Nefarius Software Solutions e.U.', 'HidHideClient', 'HidHideClient.exe'),
-    join(base, 'Nefarius Software Solutions e.U', 'HidHideClient', 'HidHideClient.exe'),
-    join(base, 'Nefarius Software Solutions e.U.', 'HidHide', 'x64', 'HidHideClient.exe')
-  ]
-  const file = candidates.find(existsSync)
-  if (!file) throw new Error('HidHide Configuration Client was not found. Finish installing HidHide and use its Start menu entry if needed.')
+  const file = findHidHideTool('HidHideClient')
+  if (!file) throw new Error('HidHide Configuration Client was not found. Use Install / repair HidHide, finish the installer, and restart Windows if requested.')
   const error = await shell.openPath(file)
-  if (error) throw new Error(error)
+  if (error) throw new Error(`Windows could not open HidHide: ${error}`)
+  return file
 }
 export function bundledHelperPath(): string { return join(resources(), 'xinputbridge', 'xinputbridge.exe') }
 
@@ -69,10 +66,8 @@ interface RoutingJournal { id: string; helper: string; hiddenBefore: string[]; a
 function routingJournalPath(): string { return join(app.getPath('userData'), 'xinput-routing.json') }
 function hidHideCli(): string {
   if (process.platform !== 'win32') throw new Error('Routing setup requires Windows')
-  const base = process.env.ProgramFiles || 'C:\\Program Files'
-  const paths = ['Nefarius Software Solutions e.U.', 'Nefarius Software Solutions e.U'].map(company => join(base, company, 'HidHideCLI', 'HidHideCLI.exe'))
-  const cli = paths.find(existsSync)
-  if (!cli) throw new Error('Install HidHide above and restart Windows if requested, then scan again.')
+  const cli = findHidHideTool('HidHideCLI')
+  if (!cli) throw new Error('HidHide command-line tool was not found. Use Install / repair HidHide and restart Windows if requested, then scan again.')
   return cli
 }
 async function cliRead(args: string[]): Promise<string> {
@@ -86,7 +81,7 @@ async function journal(): Promise<RoutingJournal | null> {
   }
 }
 export async function windowsRoutingState(): Promise<RoutingState> {
-  const cli = hidHideCli()
+  hidHideCli()
   // XUSB endpoints are not necessarily HID collections; include only their dedicated gamepad service.
   const json = await powershell(`$items = @(Get-CimInstance Win32_PnPEntity | Where-Object { $_.Present -and $_.Service -match '^xusb(21|22)?$' -and $_.PNPDeviceID.StartsWith('USB\\') } | ForEach-Object { $p = (Get-PnpDeviceProperty -InstanceId $_.PNPDeviceID -KeyName DEVPKEY_Device_Parent -ErrorAction SilentlyContinue).Data; @{ id = $_.PNPDeviceID; name = $_.Name; service = $_.Service; parent = $p } }); ConvertTo-Json -InputObject $items -Compress`)
   const pnp = JSON.parse(json) as Array<{ id: string; name: string; service: string; parent: string }>

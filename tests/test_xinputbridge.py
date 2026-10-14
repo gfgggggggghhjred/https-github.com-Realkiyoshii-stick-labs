@@ -253,4 +253,87 @@ class SlotResolutionTests(unittest.TestCase):
         self.assertEqual(m.ctypes.sizeof(m.Capabilities), 20)
         self.assertEqual(m.ctypes.sizeof(m.CapabilitiesEx), 32)
 
+
+class PlayerOneTests(unittest.TestCase):
+    class Reader:
+        def __init__(self):
+            self.devices = {}
+            self.ids = {}
+        def __call__(self, slot): return self.devices.get(slot)
+        def identity(self, slot): return self.ids.get(slot)
+
+    def build(self, output=0):
+        reader = self.Reader()
+        class Virtual(Target):
+            def identity(self): return (0x045e, 0x028e)
+            def close(self):
+                super().close()
+                reader.devices.pop(output, None)
+                reader.ids.pop(output, None)
+        target = Virtual(output)
+        def factory():
+            reader.devices[output] = m.Gamepad()
+            reader.ids[output] = target.identity()
+            return target
+        return m.Bridge(reader, factory), reader, target
+
+    def test_prepare_then_reconnect_source_uses_same_virtual_player_one(self):
+        bridge, reader, target = self.build()
+        bridge.prepare_player_one(attempts=2, pause=lambda _: None)
+        self.assertTrue(bridge.status()['prepared'])
+        self.assertFalse(bridge.status()['running'])
+        self.assertEqual(bridge.status()['outputSlot'], 0)
+        self.assertEqual(bridge.sources(), [])
+        bridge.tick()
+        self.assertEqual(target.writes, [(0, 0, 0, 0, 0, 0, 0)])
+        reader.devices[1] = m.Gamepad(lx=12345, buttons=1)
+        reader.ids[1] = (0x046d, 0xc53b)
+        bridge.start(1, DEFAULT)
+        bridge.tick()
+        self.assertTrue(bridge.status()['running'])
+        self.assertFalse(bridge.status()['prepared'])
+        self.assertEqual(bridge.output_slot, 0)
+        self.assertEqual(target.writes[-1], (1, 0, 0, 12345, 0, 0, 0))
+        reader.devices.pop(1)
+        bridge.tick()
+        self.assertTrue(target.closed)
+
+    def test_refuses_occupied_slots_without_creating_output(self):
+        bridge, reader, target = self.build()
+        reader.devices[2] = m.Gamepad()
+        with self.assertRaisesRegex(ValueError, 'Disconnect MATRIX'):
+            bridge.prepare_player_one(attempts=2, pause=lambda _: None)
+        self.assertEqual(list(reader.devices), [2])
+        self.assertFalse(bridge.status()['prepared'])
+
+    def test_wrong_output_slot_is_removed(self):
+        bridge, reader, target = self.build(output=1)
+        with self.assertRaisesRegex(ValueError, 'did not assign'):
+            bridge.prepare_player_one(attempts=2, pause=lambda _: None)
+        self.assertTrue(target.closed)
+        self.assertEqual(reader.devices, {})
+
+    def test_ambiguous_source_cannot_read_reserved_output(self):
+        bridge, reader, target = self.build()
+        bridge.prepare_player_one(attempts=2, pause=lambda _: None)
+        with self.assertRaises(ValueError): bridge.start(0, DEFAULT)
+        reader.devices[1] = m.Gamepad()
+        reader.ids[1] = target.identity()
+        with self.assertRaisesRegex(ValueError, 'Cannot distinguish'):
+            bridge.start(1, DEFAULT)
+        self.assertFalse(bridge.status()['running'])
+        self.assertTrue(bridge.status()['prepared'])
+        bridge.stop()
+        self.assertTrue(target.closed)
+
+    def test_reservation_releases_on_timeout_or_identity_change(self):
+        for cause in ('timeout', 'identity'):
+            bridge, reader, target = self.build()
+            bridge.prepare_player_one(attempts=2, pause=lambda _: None)
+            if cause == 'timeout': bridge.last_heartbeat = time.monotonic() - 6
+            else: reader.ids[0] = (0x046d, 0xc53b)
+            bridge.tick()
+            self.assertTrue(target.closed)
+            self.assertFalse(bridge.status()['prepared'])
+
 if __name__ == '__main__': unittest.main()

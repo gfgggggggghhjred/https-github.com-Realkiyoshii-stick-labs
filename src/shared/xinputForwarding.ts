@@ -11,6 +11,7 @@ export interface XinputSource {
 export interface ForwardingStatus {
   supported: boolean
   running: boolean
+  prepared?: boolean
   sourceSlot: number | null
   outputSlot: number | null
   error: string | null

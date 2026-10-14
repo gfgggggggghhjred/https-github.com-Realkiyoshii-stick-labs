@@ -70,7 +70,7 @@ export class XinputForwarding {
     if (!proc) throw new Error('XInput helper unavailable')
     return new Promise((resolve, reject) => {
       const id = ++this.seq
-      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error('XInput command timed out')); proc.kill() }, command === 'start' ? 15000 : 5000)
+      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error('XInput command timed out')); proc.kill() }, (command === 'start' || command === 'prepare') ? 15000 : 5000)
       this.pending.set(id, { resolve, reject, timer })
       proc.stdin.write(JSON.stringify({ id, command, ...fields }) + '\n', error => {
         if (!error) return
@@ -85,9 +85,12 @@ export class XinputForwarding {
   }
   async installDriver(): Promise<void> {
     const status = await this.status()
-    if (status.running) throw new Error('Stop forwarding before installing a driver.')
+    if (status.running || status.prepared) throw new Error('Stop forwarding or cancel the Player 1 reservation before installing a driver.')
     this.close()
     await installWindowsDriver('vigem')
+  }
+  async prepare(): Promise<ForwardingStatus> {
+    await this.request('prepare'); return this.status()
   }
   async sources(): Promise<XinputSource[]> { return this.request('sources') }
   async start(source: number, settings: PreviewSettings): Promise<ForwardingStatus> {

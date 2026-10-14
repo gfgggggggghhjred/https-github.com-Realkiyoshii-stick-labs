@@ -50,6 +50,7 @@ interface LabApi {
   windowsOpenRouting(): Promise<string>
   xinputInstallDriver(): Promise<void>
   xinputStatus(): Promise<import('@shared/xinputForwarding').ForwardingStatus>
+  xinputPrepare(): Promise<import('@shared/xinputForwarding').ForwardingStatus>
   xinputSources(): Promise<import('@shared/xinputForwarding').XinputSource[]>
   xinputStart(source: number, settings: import('@shared/xinput').PreviewSettings): Promise<import('@shared/xinputForwarding').ForwardingStatus>
   xinputSettings(settings: import('@shared/xinput').PreviewSettings): Promise<void>

@@ -155,12 +155,14 @@ class Bridge:
         self.source = None
         self.output_slot = None
         self.source_identity = None
+        self.reserved_identity = None
         self.settings = None
         self.error = None
         self.last_heartbeat = time.monotonic()
 
     def status(self):
-        return {'running': self.target is not None, 'sourceSlot': self.source,
+        return {'running': self.target is not None and self.source is not None,
+                'prepared': self.target is not None and self.source is None, 'sourceSlot': self.source,
                 'outputSlot': self.output_slot, 'error': self.error}
 
     def sources(self):
@@ -168,8 +170,44 @@ class Bridge:
                  'lx': p.lx, 'ly': p.ly, 'rx': p.rx, 'ry': p.ry}
                 for i in range(4) if i != self.output_slot for p in [self.reader(i)] if p is not None]
 
-    def start(self, source, settings):
+    def prepare_player_one(self, attempts=60, pause=time.sleep):
         if self.target is not None:
+            raise ValueError('Stop forwarding or cancel the existing Player 1 reservation first.')
+        if self.sources():
+            raise ValueError('Disconnect MATRIX and all other XInput controllers, and stop other virtual controllers, before preparing Player 1.')
+        identify = getattr(self.reader, 'identity', None)
+        if not identify:
+            raise ValueError('Player 1 preparation requires native controller identity support.')
+        target = self.factory()
+        try:
+            expected = target.identity()
+            stable = 0
+            for _ in range(attempts):
+                visible = [i for i in range(4) if self.reader(i) is not None]
+                try:
+                    reported = target.user_index()
+                except Exception:
+                    reported = None
+                verified = visible == [0] and reported == 0 and expected is not None and identify(0) == expected
+                stable = stable + 1 if verified else 0
+                if stable >= 2:
+                    self.target = target
+                    self.output_slot = 0
+                    self.reserved_identity = expected
+                    self.error = None
+                    self.last_heartbeat = time.monotonic()
+                    target.write(0, 0, 0, 0, 0, 0, 0)
+                    return
+                pause(.05)
+            raise ValueError('Windows did not assign the virtual controller to slot 1. Close games, disconnect other controllers, and retry. The temporary controller was removed.')
+        except Exception:
+            if self.target is target:
+                self.target = self.output_slot = self.reserved_identity = None
+            target.close()
+            raise
+
+    def start(self, source, settings):
+        if self.target is not None and self.source is not None:
             raise ValueError('Stop forwarding before changing the source')
         if type(source) is not int or source not in range(4):
             raise ValueError('Select an XInput slot from 0 to 3')
@@ -181,12 +219,21 @@ class Bridge:
             raise ValueError('All four XInput slots are occupied; disconnect another controller')
         identify = getattr(self.reader, 'identity', None)
         source_identity = identify(source) if identify else None
-        target = self.factory()
-        try:
-            slot, source_identity = resolve_output_slot(self.reader, target, source, occupied, expected_source_identity=source_identity)
-        except Exception:
-            target.close()
-            raise
+        if self.target is not None:
+            target, slot = self.target, self.output_slot
+            if (not identify or self.reader(slot) is None or identify(slot) != self.reserved_identity
+                    or target.user_index() != slot):
+                self.stop()
+                raise ValueError('The reserved virtual slot changed. Prepare Player 1 again.')
+            if source_identity is None or source_identity == self.reserved_identity:
+                raise ValueError('Cannot distinguish this source from the reserved virtual controller. Cancel the reservation and use normal forwarding; loop protection remains enabled.')
+        else:
+            target = self.factory()
+            try:
+                slot, source_identity = resolve_output_slot(self.reader, target, source, occupied, expected_source_identity=source_identity)
+            except Exception:
+                target.close()
+                raise
         self.target, self.source, self.output_slot = target, source, slot
         self.source_identity = source_identity
         self.variation.reset()
@@ -198,6 +245,7 @@ class Bridge:
     def stop(self):
         target = self.target
         self.target = self.source = self.output_slot = None
+        self.reserved_identity = self.source_identity = None
         if target:
             target.close()  # neutral report before removal
 
@@ -207,6 +255,10 @@ class Bridge:
         try:
             if time.monotonic() - self.last_heartbeat > 5:
                 raise RuntimeError('Control connection timed out; forwarding stopped')
+            if self.reserved_identity is not None and (self.reader(self.output_slot) is None or self.reader.identity(self.output_slot) != self.reserved_identity):
+                raise RuntimeError('Reserved virtual controller changed or disconnected; forwarding stopped.')
+            if self.source is None:
+                return  # Prepared controller stays neutral until an explicit source selection.
             if self.source_identity is not None and self.reader.identity(self.source) != self.source_identity:
                 raise RuntimeError('Source slot identity changed; forwarding stopped to prevent a loop.')
             pad = self.reader(self.source)
@@ -340,6 +392,8 @@ def main():
                     cmd = message.get('command')
                     if cmd == 'start':
                         bridge.start(message.get('source'), message.get('settings'))
+                    elif cmd == 'prepare':
+                        bridge.prepare_player_one()
                     elif cmd == 'settings':
                         bridge.settings = validate_settings(message.get('settings'))
                     elif cmd == 'stop':

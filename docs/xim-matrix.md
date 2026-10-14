@@ -99,3 +99,13 @@ These are random target changes, not a periodic waveform or USB polling rate. Th
 Scan routing devices, Open advanced HidHide application, and Check setup again now report their progress and results beside the buttons. Scanning and checking are available while forwarding runs; stop forwarding before changing routing. If a scan fails, its error stays visible and the controls unlock for another attempt. Use **Install / repair HidHide** if the tools are missing.
 
 Tool discovery supports the bundled `Program Files\Nefarius Software Solutions\HidHide\x64` layout, the newer flat HidHide directory, and older separate client/CLI directories. HidHide's command-line tool must receive EOF on its redirected input to finish; the app now closes that input immediately.
+
+### Controller order: virtual Player 1 (2.3.6)
+
+1. Finish HidHide setup with MATRIX connected.
+2. Stop forwarding and close the game. Disconnect MATRIX and other gamepads; stop other virtual-controller applications.
+3. Click **Prepare virtual controller as Player 1**. Stick Labs creates a neutral controller and checks that Windows assigned it XInput slot 1. If slot 1 cannot be verified, it removes the temporary controller and shows an error.
+4. Reconnect MATRIX, refresh Windows XInput slots, and select MATRIX as the source. Confirm routing and click **Start forwarding**. The already-created virtual controller stays in slot 1.
+5. Open your game. Use **Cancel Player 1 reservation** before starting forwarding if you want to undo preparation. Stopping forwarding also removes the virtual controller.
+
+This is a connection-order workflow, not an arbitrary Windows slot setter. Games may retain their own controller selection. Preparation requires native device identities and refuses sources whose identity cannot be distinguished from the virtual controller. Existing normal forwarding remains available for those sources. Hardware testing with the actual MATRIX setup is still required.

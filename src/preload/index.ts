@@ -20,6 +20,7 @@ const api = {
   windowsOpenRouting: () => call<string>('windows:openRouting'),
   xinputInstallDriver: () => call<void>('xinput:install-driver'),
   xinputStatus: () => call<import('../shared/xinputForwarding').ForwardingStatus>('xinput:status'),
+  xinputPrepare: () => call<import('../shared/xinputForwarding').ForwardingStatus>('xinput:prepare'),
   xinputSources: () => call<import('../shared/xinputForwarding').XinputSource[]>('xinput:sources'),
   xinputStart: (source: number, settings: import('../shared/xinput').PreviewSettings) => call<import('../shared/xinputForwarding').ForwardingStatus>('xinput:start', source, settings),
   xinputSettings: (settings: import('../shared/xinput').PreviewSettings) => call<void>('xinput:settings', settings),
